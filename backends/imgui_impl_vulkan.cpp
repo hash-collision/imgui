@@ -114,9 +114,9 @@ void ImGui_ImplVulkanH_CreateWindowCommandBuffers(VkPhysicalDevice physical_devi
 // (see description of IMGUI_IMPL_VULKAN_NO_PROTOTYPES in imgui_impl_vulkan.h
 #if defined(VK_NO_PROTOTYPES) && !defined(VOLK_H_)
 #define IMGUI_IMPL_VULKAN_USE_LOADER
-static bool g_FunctionsLoaded = false;
+bool g_FunctionsLoaded = false;
 #else
-static bool g_FunctionsLoaded = true;
+bool g_FunctionsLoaded = true;
 #endif
 #ifdef IMGUI_IMPL_VULKAN_USE_LOADER
 #define IMGUI_VULKAN_FUNC_MAP(IMGUI_VULKAN_FUNC_MAP_MACRO) \
