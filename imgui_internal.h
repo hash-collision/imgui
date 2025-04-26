@@ -1212,6 +1212,7 @@ enum ImGuiNextWindowDataFlags_
     ImGuiNextWindowDataFlags_HasWindowFlags     = 1 << 8,
     ImGuiNextWindowDataFlags_HasChildFlags      = 1 << 9,
     ImGuiNextWindowDataFlags_HasRefreshPolicy   = 1 << 10,
+    ImGuiNextWindowDataFlags_HasNoInputs        = 1 << 11,
 };
 
 // Storage for SetNexWindow** functions
@@ -1228,7 +1229,7 @@ struct ImGuiNextWindowData
     ImVec2                      SizeVal;
     ImVec2                      ContentSizeVal;
     ImVec2                      ScrollVal;
-    ImGuiWindowFlags            WindowFlags;            // Only honored by BeginTable()
+    ImGuiWindowFlags            WindowFlags;            // Only honored by BeginTable() or in the case or in the case of ImGuiNextWindowDataFlags_HasNoInputs [PR]
     ImGuiChildFlags             ChildFlags;
     bool                        CollapsedVal;
     ImRect                      SizeConstraintRect;

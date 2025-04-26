@@ -1720,10 +1720,16 @@ void ImGuiIO::AddMousePosEvent(float x, float y)
     IM_ASSERT(Ctx != NULL);
     ImGuiContext& g = *Ctx;
     if (!AppAcceptingEvents)
+    {
         return;
+    }
+
+    MousePosScreen = ImVec2(x,y);//[PR]
 
     // Apply same flooring as UpdateMouseInputs()
     ImVec2 pos((x > -FLT_MAX) ? ImFloor(x) : x, (y > -FLT_MAX) ? ImFloor(y) : y);
+
+    pos+= DisplayPos;//[PR]
 
     // Filter duplicate
     const ImGuiInputEvent* latest_event = FindLatestInputEvent(&g, ImGuiInputEventType_MousePos);
@@ -7052,6 +7058,11 @@ bool ImGui::Begin(const char* name, bool* p_open, ImGuiWindowFlags flags)
     const bool first_begin_of_the_frame = (window->LastFrameActive != current_frame);
     window->IsFallbackWindow = (g.CurrentWindowStack.Size == 0 && g.WithinFrameScopeWithImplicitWindow);
 
+    if(g.NextWindowData.HasFlags & ImGuiNextWindowDataFlags_HasNoInputs) // [PR]
+    {
+        flags |= ImGuiWindowFlags_NoInputs;
+    }
+
     // Update the Appearing flag
     bool window_just_activated_by_user = (window->LastFrameActive < current_frame - 1);   // Not using !WasActive because the implicit "Debug" window would always toggle off->on
     if (flags & ImGuiWindowFlags_Popup)
@@ -7400,9 +7411,10 @@ bool ImGui::Begin(const char* name, bool* p_open, ImGuiWindowFlags flags)
 
         // Clamp position/size so window stays visible within its viewport or monitor
         // Ignore zero-sized display explicitly to avoid losing positions if a window manager reports zero-sized window when initializing or minimizing.
-        if (!window_pos_set_by_api && !(flags & ImGuiWindowFlags_ChildWindow))
-            if (viewport_rect.GetWidth() > 0.0f && viewport_rect.GetHeight() > 0.0f)
-                ClampWindowPos(window, visibility_rect);
+        // if (!window_pos_set_by_api && !(flags & ImGuiWindowFlags_ChildWindow))
+        //     if (viewport_rect.GetWidth() > 0.0f && viewport_rect.GetHeight() > 0.0f)
+        //         ClampWindowPos(window, visibility_rect); [PR]
+        
         window->Pos = ImTrunc(window->Pos);
 
         // Lock window rounding for the frame (so that altering them doesn't cause inconsistencies)
@@ -8294,6 +8306,13 @@ void ImGui::SetNextWindowSize(const ImVec2& size, ImGuiCond cond)
     g.NextWindowData.HasFlags |= ImGuiNextWindowDataFlags_HasSize;
     g.NextWindowData.SizeVal = size;
     g.NextWindowData.SizeCond = cond ? cond : ImGuiCond_Always;
+}
+
+void ImGui::SetNextWindowNoInputs() // [PR]
+{
+    ImGuiContext& g = *GImGui;
+    g.NextWindowData.HasFlags |= ImGuiNextWindowDataFlags_HasNoInputs;
+    g.NextWindowData.WindowFlags |= ImGuiWindowFlags_NoInputs;
 }
 
 // For each axis:
@@ -15019,7 +15038,7 @@ static void ImGui::UpdateViewportsNewFrame()
     // FIXME-VIEWPORT: Size is driven by backend/user code for backward-compatibility but we should aim to make this more consistent.
     ImGuiViewportP* main_viewport = g.Viewports[0];
     main_viewport->Flags = ImGuiViewportFlags_IsPlatformWindow | ImGuiViewportFlags_OwnedByApp;
-    main_viewport->Pos = ImVec2(0.0f, 0.0f);
+    main_viewport->Pos = g.IO.DisplayPos;// [PR]
     main_viewport->Size = g.IO.DisplaySize;
 
     for (ImGuiViewportP* viewport : g.Viewports)
