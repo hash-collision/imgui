@@ -1211,8 +1211,7 @@ enum ImGuiNextWindowDataFlags_
     ImGuiNextWindowDataFlags_HasScroll          = 1 << 7,
     ImGuiNextWindowDataFlags_HasWindowFlags     = 1 << 8,
     ImGuiNextWindowDataFlags_HasChildFlags      = 1 << 9,
-    ImGuiNextWindowDataFlags_HasRefreshPolicy   = 1 << 10,
-    ImGuiNextWindowDataFlags_HasNoInputs        = 1 << 11,
+    ImGuiNextWindowDataFlags_HasRefreshPolicy   = 1 << 10
 };
 
 // Storage for SetNexWindow** functions
@@ -1229,7 +1228,7 @@ struct ImGuiNextWindowData
     ImVec2                      SizeVal;
     ImVec2                      ContentSizeVal;
     ImVec2                      ScrollVal;
-    ImGuiWindowFlags            WindowFlags;            // Only honored by BeginTable() or in the case or in the case of ImGuiNextWindowDataFlags_HasNoInputs [PR]
+    ImGuiWindowFlags            WindowFlags;            // Only honored by BeginTable()
     ImGuiChildFlags             ChildFlags;
     bool                        CollapsedVal;
     ImRect                      SizeConstraintRect;
@@ -2072,6 +2071,7 @@ struct ImGuiContextHook
 
 struct ImGuiContext
 {
+    bool                    DisableWindowInputs; // [PR]
     bool                    Initialized;
     bool                    FontAtlasOwnedByContext;            // IO.Fonts-> is owned by the ImGuiContext and will be destructed along with it.
     ImGuiIO                 IO;

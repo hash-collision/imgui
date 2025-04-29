@@ -1724,6 +1724,10 @@ void ImGuiIO::AddMousePosEvent(float x, float y)
         return;
     }
 
+    //BANANA
+    // x*= DisplayScale;
+    // y*= DisplayScale;
+
     MousePosScreen = ImVec2(x,y);//[PR]
 
     // Apply same flooring as UpdateMouseInputs()
@@ -5176,9 +5180,11 @@ static void SetupDrawListSharedData()
 
 void ImGui::NewFrame()
 {
+
     IM_ASSERT(GImGui != NULL && "No current context. Did you call ImGui::CreateContext() and ImGui::SetCurrentContext() ?");
     ImGuiContext& g = *GImGui;
 
+    
     // Remove pending delete hooks before frame start.
     // This deferred removal avoid issues of removal while iterating the hook vector
     for (int n = g.Hooks.Size - 1; n >= 0; n--)
@@ -5355,6 +5361,10 @@ void ImGui::NewFrame()
     UpdateHoveredWindowAndCaptureFlags(g.IO.MousePos);
 
     // Handle user moving window with mouse (at the beginning of the frame to avoid input lag or sheering)
+
+    //BANANA
+
+  //  g.IO.DisplayPos = g.IO.DisplayPosTarget;
     UpdateMouseMovingWindowNewFrame();
 
     // Background darkening/whitening
@@ -5638,6 +5648,9 @@ void ImGui::EndFrame()
     ImGuiContext& g = *GImGui;
     IM_ASSERT(g.Initialized);
 
+    g.DisableWindowInputs = false;
+
+
     // Don't process EndFrame() multiple times.
     if (g.FrameCountEnded == g.FrameCount)
         return;
@@ -5796,6 +5809,16 @@ void ImGui::Render()
     }
 
     CallContextHooks(&g, ImGuiContextHookType_RenderPost);
+
+
+    //BANANA
+    ImVec2 delta = (g.IO.DisplayPosTarget - g.IO.DisplayPos ) * 0.17f;
+    delta.x = (delta.x < 0.0f) ? floorf(delta.x) : ceilf(delta.x);
+    delta.y = (delta.y < 0.0f) ? floorf(delta.y) : ceilf(delta.y);
+    
+    g.IO.DisplayPos += delta;
+    
+    //g.IO.DisplayPos = g.IO.DisplayPosTarget;
 }
 
 // Calculate text size. Text can be multi-line. Optionally ignore text after a ## marker.
@@ -7058,7 +7081,7 @@ bool ImGui::Begin(const char* name, bool* p_open, ImGuiWindowFlags flags)
     const bool first_begin_of_the_frame = (window->LastFrameActive != current_frame);
     window->IsFallbackWindow = (g.CurrentWindowStack.Size == 0 && g.WithinFrameScopeWithImplicitWindow);
 
-    if(g.NextWindowData.HasFlags & ImGuiNextWindowDataFlags_HasNoInputs) // [PR]
+    if(g.DisableWindowInputs) // [PR]
     {
         flags |= ImGuiWindowFlags_NoInputs;
     }
@@ -8306,13 +8329,6 @@ void ImGui::SetNextWindowSize(const ImVec2& size, ImGuiCond cond)
     g.NextWindowData.HasFlags |= ImGuiNextWindowDataFlags_HasSize;
     g.NextWindowData.SizeVal = size;
     g.NextWindowData.SizeCond = cond ? cond : ImGuiCond_Always;
-}
-
-void ImGui::SetNextWindowNoInputs() // [PR]
-{
-    ImGuiContext& g = *GImGui;
-    g.NextWindowData.HasFlags |= ImGuiNextWindowDataFlags_HasNoInputs;
-    g.NextWindowData.WindowFlags |= ImGuiWindowFlags_NoInputs;
 }
 
 // For each axis:
@@ -15039,7 +15055,7 @@ static void ImGui::UpdateViewportsNewFrame()
     ImGuiViewportP* main_viewport = g.Viewports[0];
     main_viewport->Flags = ImGuiViewportFlags_IsPlatformWindow | ImGuiViewportFlags_OwnedByApp;
     main_viewport->Pos = g.IO.DisplayPos;// [PR]
-    main_viewport->Size = g.IO.DisplaySize;
+    main_viewport->Size = g.IO.DisplaySize;// * g.IO.DisplayScale; //[PR]
 
     for (ImGuiViewportP* viewport : g.Viewports)
     {
