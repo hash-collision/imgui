@@ -1434,6 +1434,7 @@ ImGuiIO::ImGuiIO()
     ConfigFlags = ImGuiConfigFlags_None;
     BackendFlags = ImGuiBackendFlags_None;
     DisplaySize = ImVec2(-1.0f, -1.0f);
+    DisplayScale = 1.0f;
     DeltaTime = 1.0f / 60.0f;
     IniSavingRate = 5.0f;
     IniFilename = "imgui.ini"; // Important: "imgui.ini" is relative to current working dir, most apps will want to lock this to an absolute path (e.g. same path as executables).
@@ -1724,15 +1725,14 @@ void ImGuiIO::AddMousePosEvent(float x, float y)
         return;
     }
 
-    //BANANA
-    // x*= DisplayScale;
-    // y*= DisplayScale;
-
-    MousePosScreen = ImVec2(x,y);//[PR]
+    const float s = 1.0f/DisplayScale;
+    x*= s;
+    y*= s; //[PR
 
     // Apply same flooring as UpdateMouseInputs()
     ImVec2 pos((x > -FLT_MAX) ? ImFloor(x) : x, (y > -FLT_MAX) ? ImFloor(y) : y);
 
+    MousePosScreen = ImVec2(pos.x, pos.y);//[PR]
     pos+= DisplayPos;//[PR]
 
     // Filter duplicate
@@ -3827,8 +3827,10 @@ void ImGui::RenderMouseCursor(ImVec2 base_pos, float base_scale, ImGuiMouseCurso
             continue;
         const ImVec2 pos = base_pos - offset;
         const float scale = base_scale;
+        
         if (!viewport->GetMainRect().Overlaps(ImRect(pos, pos + ImVec2(size.x + 2, size.y + 2) * scale)))
             continue;
+
         ImDrawList* draw_list = GetForegroundDrawList(viewport);
         ImTextureID tex_id = font_atlas->TexID;
         draw_list->PushTextureID(tex_id);
@@ -5361,10 +5363,6 @@ void ImGui::NewFrame()
     UpdateHoveredWindowAndCaptureFlags(g.IO.MousePos);
 
     // Handle user moving window with mouse (at the beginning of the frame to avoid input lag or sheering)
-
-    //BANANA
-
-  //  g.IO.DisplayPos = g.IO.DisplayPosTarget;
     UpdateMouseMovingWindowNewFrame();
 
     // Background darkening/whitening
@@ -5808,17 +5806,7 @@ void ImGui::Render()
         g.IO.MetricsRenderIndices += draw_data->TotalIdxCount;
     }
 
-    CallContextHooks(&g, ImGuiContextHookType_RenderPost);
-
-
-    //BANANA
-    ImVec2 delta = (g.IO.DisplayPosTarget - g.IO.DisplayPos ) * 0.17f;
-    delta.x = (delta.x < 0.0f) ? floorf(delta.x) : ceilf(delta.x);
-    delta.y = (delta.y < 0.0f) ? floorf(delta.y) : ceilf(delta.y);
-    
-    g.IO.DisplayPos += delta;
-    
-    //g.IO.DisplayPos = g.IO.DisplayPosTarget;
+    CallContextHooks(&g, ImGuiContextHookType_RenderPost);      
 }
 
 // Calculate text size. Text can be multi-line. Optionally ignore text after a ## marker.
@@ -9418,6 +9406,28 @@ void ImGui::TeleportMousePos(const ImVec2& pos)
     g.IO.MouseDelta = ImVec2(0.0f, 0.0f);
     g.IO.WantSetMousePos = true;
     //IMGUI_DEBUG_LOG_IO("TeleportMousePos: (%.1f,%.1f)\n", io.MousePos.x, io.MousePos.y);
+}
+
+void ImGui::ConstrainMousePos(const ImVec2& pos) //[PR]
+{
+    ImGuiContext& g = *GImGui;
+
+    ImVec2 a = g.IO.MousePos;
+   // g.IO.MousePos = g.IO.MousePosPrev = pos;
+  
+    g.IO.MousePos = pos;
+  //  g.IO.MouseDelta = ImVec2(0.0f, 0.0f);
+    g.IO.WantSetMousePos = true;
+
+    if(g.MovingWindow)
+    {
+
+        g.ActiveIdClickOffset = pos - g.MovingWindow->RootWindow->Pos;
+
+    //    StartMouseMovingWindow(g.MovingWindow);
+    }
+
+
 }
 
 // NB: prefer to call right after BeginPopup(). At the time Selectable/MenuItem is activated, the popup is already closed!
@@ -15050,12 +15060,16 @@ static void ImGui::UpdateViewportsNewFrame()
     ImGuiContext& g = *GImGui;
     IM_ASSERT(g.Viewports.Size == 1);
 
+    float sc = 1.0f / g.IO.DisplayScale;
+
+    g.Style.MouseCursorScale = sc;
+
     // Update main viewport with current platform position.
     // FIXME-VIEWPORT: Size is driven by backend/user code for backward-compatibility but we should aim to make this more consistent.
     ImGuiViewportP* main_viewport = g.Viewports[0];
     main_viewport->Flags = ImGuiViewportFlags_IsPlatformWindow | ImGuiViewportFlags_OwnedByApp;
     main_viewport->Pos = g.IO.DisplayPos;// [PR]
-    main_viewport->Size = g.IO.DisplaySize;// * g.IO.DisplayScale; //[PR]
+    main_viewport->Size = g.IO.DisplaySize * sc; //[PR]
 
     for (ImGuiViewportP* viewport : g.Viewports)
     {

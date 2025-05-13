@@ -28,6 +28,7 @@
 
 // Library Version
 // (Integer encoded as XYYZZ for use in #if preprocessor conditionals, e.g. '#if IMGUI_VERSION_NUM >= 12345')
+#include <cstdint>
 #define IMGUI_VERSION       "1.92.0 WIP"
 #define IMGUI_VERSION_NUM   19193
 #define IMGUI_HAS_TABLE
@@ -2083,7 +2084,12 @@ IM_MSVC_RUNTIME_CHECKS_OFF
 template<typename T>
 struct ImVector
 {
-    int                 Size;
+    union
+    {
+        int             Size;
+        uint32_t        USize;
+    };
+
     int                 Capacity;
     T*                  Data;
 
@@ -2261,7 +2267,6 @@ struct ImGuiIO
     ImGuiBackendFlags  BackendFlags;            // = 0              // See ImGuiBackendFlags_ enum. Set by backend (imgui_impl_xxx files or custom backend) to communicate features supported by the backend.
     ImVec2      DisplaySize;                    // <unset>          // Main display size, in pixels (generally == GetMainViewport()->Size). May change every frame.
     ImVec2      DisplayPos; //[PR]
-    ImVec2      DisplayPosTarget;//[PR]
     float       DisplayScale; //[PR]
     float       DeltaTime;                      // = 1.0f/60.0f     // Time elapsed since last frame, in seconds. May change every frame.
     float       IniSavingRate;                  // = 5.0f           // Minimum time between saving positions/sizes to .ini file, in seconds.
