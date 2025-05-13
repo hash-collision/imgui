@@ -9410,28 +9410,6 @@ void ImGui::TeleportMousePos(const ImVec2& pos)
     //IMGUI_DEBUG_LOG_IO("TeleportMousePos: (%.1f,%.1f)\n", io.MousePos.x, io.MousePos.y);
 }
 
-void ImGui::ConstrainMousePos(const ImVec2& pos) //[PR]
-{
-    ImGuiContext& g = *GImGui;
-
-    ImVec2 a = g.IO.MousePos;
-   // g.IO.MousePos = g.IO.MousePosPrev = pos;
-  
-    g.IO.MousePos = pos;
-  //  g.IO.MouseDelta = ImVec2(0.0f, 0.0f);
-    g.IO.WantSetMousePos = true;
-
-    if(g.MovingWindow)
-    {
-
-        g.ActiveIdClickOffset = pos - g.MovingWindow->RootWindow->Pos;
-
-    //    StartMouseMovingWindow(g.MovingWindow);
-    }
-
-
-}
-
 // NB: prefer to call right after BeginPopup(). At the time Selectable/MenuItem is activated, the popup is already closed!
 ImVec2 ImGui::GetMousePosOnOpeningCurrentPopup()
 {
