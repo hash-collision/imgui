@@ -2272,6 +2272,14 @@ struct ImGuiIO
     ImVec2      DisplayPosNew; //[PR]
     float       DisplayScaleNew; //[PR]
     bool        IsDisplayModified; //[PR]
+    ImVec2      MousePosScreen;//[PR]
+
+    void SetCanvasTransform(const ImVec2 pos, float scale)//[PR]
+    {
+        DisplayPosNew   = pos;
+        DisplayScaleNew = scale;
+        IsDisplayModified = true;
+    }
 
     float       DeltaTime;                      // = 1.0f/60.0f     // Time elapsed since last frame, in seconds. May change every frame.
     float       IniSavingRate;                  // = 5.0f           // Minimum time between saving positions/sizes to .ini file, in seconds.
@@ -2432,7 +2440,6 @@ struct ImGuiIO
 
     ImGuiContext* Ctx;                              // Parent UI context (needs to be set explicitly by parent).
     
-    ImVec2 MousePosScreen;//[PR]
     // Main Input State
     // (this block used to be written by backend, since 1.87 it is best to NOT write to those directly, call the AddXXX functions above instead)
     // (reading from those variables is fair game, as they are extremely unlikely to be moving anywhere)

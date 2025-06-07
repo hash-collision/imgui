@@ -1076,6 +1076,7 @@ CODE
 // [SECTION] INCLUDES
 //-------------------------------------------------------------------------
 
+#include <cstdint>
 #if defined(_MSC_VER) && !defined(_CRT_SECURE_NO_WARNINGS)
 #define _CRT_SECURE_NO_WARNINGS
 #endif
@@ -5180,6 +5181,33 @@ static void SetupDrawListSharedData()
     g.DrawListSharedData.InitialFringeScale = 1.0f; // FIXME-DPI: Change this for some DPI scaling experiments.
 }
 
+void UpdateCanvas()  //[PR]
+{    
+    ImGuiIO& io = GImGui->IO;
+
+    if(io.IsDisplayModified)
+    {
+        ImVec2 mp = io.MousePos;
+        mp -= io.DisplayPos;
+        mp *= io.DisplayScale;
+
+        IM_ASSERT(io.DisplayScaleNew>0.0f);
+        
+        io.DisplayScale = io.DisplayScaleNew;
+        io.DisplayPos   = io.DisplayPosNew;
+        io.IsDisplayModified = false;
+
+        mp /= io.DisplayScale;
+        mp += io.DisplayPos;
+
+        io.MousePos = mp;
+    }
+
+    io.DisplayScaleNew = io.DisplayScale;
+    io.DisplayPosNew   = io.DisplayPos;
+}
+
+
 void ImGui::NewFrame()
 {
 
@@ -5200,6 +5228,9 @@ void ImGui::NewFrame()
 
     // Load settings on first frame, save settings when modified (after a delay)
     UpdateSettings();
+
+    UpdateCanvas(); //[PR]
+
 
     g.Time += g.IO.DeltaTime;
     g.WithinFrameScope = true;
