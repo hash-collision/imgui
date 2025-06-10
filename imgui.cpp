@@ -1076,6 +1076,7 @@ CODE
 // [SECTION] INCLUDES
 //-------------------------------------------------------------------------
 
+#include <cassert>
 #include <cstdint>
 #if defined(_MSC_VER) && !defined(_CRT_SECURE_NO_WARNINGS)
 #define _CRT_SECURE_NO_WARNINGS
@@ -5181,7 +5182,7 @@ static void SetupDrawListSharedData()
     g.DrawListSharedData.InitialFringeScale = 1.0f; // FIXME-DPI: Change this for some DPI scaling experiments.
 }
 
-void UpdateCanvas()  //[PR]
+void UpdateDisplayTransform()  //[PR]
 {    
     ImGuiIO& io = GImGui->IO;
 
@@ -5207,6 +5208,42 @@ void UpdateCanvas()  //[PR]
     io.DisplayPosNew   = io.DisplayPos;
 }
 
+void ImGuiIO::SetDisplaySize(ImVec2 NewDisplaySize)
+{
+    if(DisplaySize!=NewDisplaySize)
+    {
+        ImVec2 C0 = (DisplaySize / DisplayScale) * 0.5f;
+        
+        DisplaySize = NewDisplaySize;
+
+        float Size = ImMax(DisplaySize.x, DisplaySize.y);
+        float MinDisplayScale = Size / 16384.0f;
+        DisplayScaleNew = ImClamp(DisplayScale, MinDisplayScale, 1.0f);
+
+        ImVec2 C1 = (DisplaySize / DisplayScaleNew) * 0.5f;
+        DisplayPosNew = DisplayPos - (C1-C0);
+        IsDisplayModified = true;
+    }
+}
+
+void ImGuiIO::SetDisplayTransform(ImVec2 Pos, float Scale)//[PR]
+{
+    DisplayPosNew   = Pos;
+    DisplayScaleNew = Scale;
+    IsDisplayModified = true;
+}
+
+void ImGuiIO::SetDisplayScale(ImVec2 AboutPoint, float Scale)//[PR]
+{
+    float Size = ImMax(DisplaySize.x, DisplaySize.y);
+    float MinDisplayScale = Size / 16384.0f;
+    float NewDisplayScale = ImClamp(Scale, MinDisplayScale, 1.0f);
+    float ScaleFactor = DisplayScale / NewDisplayScale;
+    ImVec2 NewDisplayPos = (DisplayPos - AboutPoint) * ScaleFactor + AboutPoint;
+
+    SetDisplayTransform(NewDisplayPos, NewDisplayScale);
+}
+
 
 void ImGui::NewFrame()
 {
@@ -5229,7 +5266,7 @@ void ImGui::NewFrame()
     // Load settings on first frame, save settings when modified (after a delay)
     UpdateSettings();
 
-    UpdateCanvas(); //[PR]
+    UpdateDisplayTransform(); //[PR]
 
 
     g.Time += g.IO.DeltaTime;
@@ -15071,16 +15108,16 @@ static void ImGui::UpdateViewportsNewFrame()
     ImGuiContext& g = *GImGui;
     IM_ASSERT(g.Viewports.Size == 1);
 
-    float sc = 1.0f / g.IO.DisplayScale;
+    float Scale = 1.0f / g.IO.DisplayScale;
 
-    g.Style.MouseCursorScale = sc;
+    g.Style.MouseCursorScale = Scale;
 
     // Update main viewport with current platform position.
     // FIXME-VIEWPORT: Size is driven by backend/user code for backward-compatibility but we should aim to make this more consistent.
     ImGuiViewportP* main_viewport = g.Viewports[0];
     main_viewport->Flags = ImGuiViewportFlags_IsPlatformWindow | ImGuiViewportFlags_OwnedByApp;
     main_viewport->Pos = g.IO.DisplayPos;// [PR]
-    main_viewport->Size = g.IO.DisplaySize * sc; //[PR]
+    main_viewport->Size = g.IO.DisplaySize * Scale; //[PR]
 
     for (ImGuiViewportP* viewport : g.Viewports)
     {

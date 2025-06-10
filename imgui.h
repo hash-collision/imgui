@@ -2266,6 +2266,7 @@ struct ImGuiIO
     ImGuiConfigFlags   ConfigFlags;             // = 0              // See ImGuiConfigFlags_ enum. Set by user/application. Keyboard/Gamepad navigation options, etc.
     ImGuiBackendFlags  BackendFlags;            // = 0              // See ImGuiBackendFlags_ enum. Set by backend (imgui_impl_xxx files or custom backend) to communicate features supported by the backend.
     ImVec2      DisplaySize;                    // <unset>          // Main display size, in pixels (generally == GetMainViewport()->Size). May change every frame.
+
     ImVec2      DisplayPos; //[PR]
     float       DisplayScale; //[PR]
 
@@ -2274,12 +2275,9 @@ struct ImGuiIO
     bool        IsDisplayModified; //[PR]
     ImVec2      MousePosScreen;//[PR]
 
-    void SetCanvasTransform(const ImVec2 pos, float scale)//[PR]
-    {
-        DisplayPosNew   = pos;
-        DisplayScaleNew = scale;
-        IsDisplayModified = true;
-    }
+    void SetDisplaySize(ImVec2 Size);
+    void SetDisplayTransform(ImVec2 Pos, float Scale);//[PR]
+    void SetDisplayScale(ImVec2 AboutPoint, float Scale);//[PR]
 
     float       DeltaTime;                      // = 1.0f/60.0f     // Time elapsed since last frame, in seconds. May change every frame.
     float       IniSavingRate;                  // = 5.0f           // Minimum time between saving positions/sizes to .ini file, in seconds.
