@@ -5018,8 +5018,12 @@ void ImGui::UpdateMouseMovingWindowNewFrame()
 void ImGui::UpdateMouseMovingWindowEndFrame()
 {
     ImGuiContext& g = *GImGui;
-    if (g.ActiveId != 0 || (g.HoveredId != 0 && !g.HoveredIdIsDisabled))
-        return;
+
+    if(!g.IO.KeyAlt)
+    {
+        if (g.ActiveId != 0 || (g.HoveredId != 0 && !g.HoveredIdIsDisabled))
+            return;
+    }
 
     // Unless we just made a window/popup appear
     if (g.NavWindow && g.NavWindow->Appearing)
@@ -5188,20 +5192,20 @@ void UpdateDisplayTransform()  //[PR]
 
     if(io.IsDisplayModified)
     {
-        ImVec2 mp = io.MousePos;
-        mp -= io.DisplayPos;
-        mp *= io.DisplayScale;
-
         IM_ASSERT(io.DisplayScaleNew>0.0f);
-        
+
         io.DisplayScale = io.DisplayScaleNew;
         io.DisplayPos   = io.DisplayPosNew;
         io.IsDisplayModified = false;
 
-        mp /= io.DisplayScale;
-        mp += io.DisplayPos;
+        float k = io.DisplayScale / io.DisplayScaleNew;
 
-        io.MousePos = mp;
+        io.MousePos = (io.MousePos - io.DisplayPos) * k + io.DisplayPosNew;
+
+        for(ImVec2& mp : io.MouseClickedPos)
+        {
+            mp = (mp- io.DisplayPos) * k + io.DisplayPosNew;
+        }
     }
 
     io.DisplayScaleNew = io.DisplayScale;
