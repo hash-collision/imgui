@@ -5296,7 +5296,7 @@ void ImGui::FrameActiveWindow()
 
     if(wsz.x > p1.x ||wsz.y > p1.y)
     {
-        new_display_scale = (wsz.x>wsz.y) ? p1.x/wsz.x : p1.y/wsz.y;
+        new_display_scale = ImMin(p1.x/wsz.x, p1.y/wsz.y);
         new_display_scale = ImClamp(new_display_scale, io.DisplayScaleMin, io.DisplayScaleMax);
         p1 /= new_display_scale;
     }
