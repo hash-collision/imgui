@@ -334,12 +334,15 @@ namespace ImGui
     IMGUI_API ImGuiIO&      GetIO();                                    // access the ImGuiIO structure (mouse/keyboard/gamepad inputs, time, various configuration options/flags)
     IMGUI_API ImGuiPlatformIO& GetPlatformIO();                         // access the ImGuiPlatformIO structure (mostly hooks/functions to connect to platform/renderer and OS Clipboard, IME etc.)
     IMGUI_API ImGuiStyle&   GetStyle();                                 // access the Style structure (colors, sizes). Always use PushStyleColor(), PushStyleVar() to modify style mid-frame!
-    IMGUI_API void          NewFrame();                                 // start a new Dear ImGui frame, you can submit any command from this point until Render()/EndFrame().
+    IMGUI_API void          NewFrame(ImVec2 display_size);              // start a new Dear ImGui frame, you can submit any command from this point until Render()/EndFrame().
     IMGUI_API void          EndFrame();                                 // ends the Dear ImGui frame. automatically called by Render(). If you don't need to render data (skipping rendering) you may call EndFrame() without Render()... but you'll have wasted CPU already! If you don't need to render, better to not create any windows and not call NewFrame() at all!
     IMGUI_API void          Render();                                   // ends the Dear ImGui frame, finalize the draw data. You can then get call GetDrawData().
     IMGUI_API ImDrawData*   GetDrawData();                              // valid after Render() and until the next call to NewFrame(). this is what you have to render.
 
     // Demo, Debug, Information
+
+    void FrameActiveWindow(); //[PR]
+
     IMGUI_API void          ShowDemoWindow(bool* p_open = NULL);        // create Demo window. demonstrate most ImGui features. call this to learn about the library! try to make it always available in your application!
     IMGUI_API void          ShowMetricsWindow(bool* p_open = NULL);     // create Metrics/Debugger window. display Dear ImGui internals: windows, draw commands, various internal state, etc.
     IMGUI_API void          ShowDebugLogWindow(bool* p_open = NULL);    // create Debug Log window. display a simplified log of important dear imgui events.
@@ -2273,11 +2276,24 @@ struct ImGuiIO
     ImVec2      DisplayPosNew; //[PR]
     float       DisplayScaleNew; //[PR]
     bool        IsDisplayModified; //[PR]
+
+    float       DisplayScaleMin; //[PR]
+    float       DisplayScaleMax; //[PR]
+
+    ImVec2      DisplayPosTarget; //[PR]
+    float       DisplayScaleTarget; //[PR]
+    bool        IsDisplayTarget; //[PR]
+
     ImVec2      MousePosScreen;//[PR]
 
-    void SetDisplaySize(ImVec2 Size);
-    void SetDisplayTransform(ImVec2 Pos, float Scale);//[PR]
-    void SetDisplayScale(ImVec2 AboutPoint, float Scale);//[PR]
+    bool        WantsRealtime;//[PR]
+
+    float       MaxDisplaySize;//[PR]
+
+    void SetDisplayTransform(ImVec2 pos, float scale);//[PR]
+    void SetDisplayTransformTarget(ImVec2 pos, float scale);//[PR]
+    void SetDisplayScale(ImVec2 origin, float scale);//[PR]
+    void ResetDisplayScale();//[PR]
 
     float       DeltaTime;                      // = 1.0f/60.0f     // Time elapsed since last frame, in seconds. May change every frame.
     float       IniSavingRate;                  // = 5.0f           // Minimum time between saving positions/sizes to .ini file, in seconds.

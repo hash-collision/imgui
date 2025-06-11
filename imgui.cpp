@@ -1432,6 +1432,9 @@ ImGuiIO::ImGuiIO()
     memset(this, 0, sizeof(*this));
     IM_STATIC_ASSERT(IM_ARRAYSIZE(ImGuiIO::MouseDown) == ImGuiMouseButton_COUNT && IM_ARRAYSIZE(ImGuiIO::MouseClicked) == ImGuiMouseButton_COUNT);
 
+    MaxDisplaySize = 16384.0f;
+    DisplayScaleMax  = 1.0f;
+
     // Settings
     ConfigFlags = ImGuiConfigFlags_None;
     BackendFlags = ImGuiBackendFlags_None;
@@ -5188,7 +5191,13 @@ static void SetupDrawListSharedData()
 
 void UpdateDisplayTransform()  //[PR]
 {    
+
+    //io.WantsRealtime ...
+
     ImGuiIO& io = GImGui->IO;
+
+
+
 
     if(io.IsDisplayModified)
     {
@@ -5212,48 +5221,96 @@ void UpdateDisplayTransform()  //[PR]
     io.DisplayPosNew   = io.DisplayPos;
 }
 
-void ImGuiIO::SetDisplaySize(ImVec2 NewDisplaySize)
+
+void ImGuiIO::SetDisplayTransform(ImVec2 pos, float scale)//[PR]
 {
-    if(DisplaySize!=NewDisplaySize)
-    {
-        ImVec2 C0 = (DisplaySize / DisplayScale) * 0.5f;
-        
-        DisplaySize = NewDisplaySize;
-
-        float Size = ImMax(DisplaySize.x, DisplaySize.y);
-        float MinDisplayScale = Size / 16384.0f;
-        DisplayScaleNew = ImClamp(DisplayScale, MinDisplayScale, 1.0f);
-
-        ImVec2 C1 = (DisplaySize / DisplayScaleNew) * 0.5f;
-        DisplayPosNew = DisplayPos - (C1-C0);
-        IsDisplayModified = true;
-    }
-}
-
-void ImGuiIO::SetDisplayTransform(ImVec2 Pos, float Scale)//[PR]
-{
-    DisplayPosNew   = Pos;
-    DisplayScaleNew = Scale;
+    DisplayPosNew   = pos;
+    DisplayScaleNew = scale;
     IsDisplayModified = true;
 }
 
-void ImGuiIO::SetDisplayScale(ImVec2 AboutPoint, float Scale)//[PR]
+void ImGuiIO::SetDisplayTransformTarget(ImVec2 pos, float scale)//[PR]
 {
-    float Size = ImMax(DisplaySize.x, DisplaySize.y);
-    float MinDisplayScale = Size / 16384.0f;
-    float NewDisplayScale = ImClamp(Scale, MinDisplayScale, 1.0f);
-    float ScaleFactor = DisplayScale / NewDisplayScale;
-    ImVec2 NewDisplayPos = (DisplayPos - AboutPoint) * ScaleFactor + AboutPoint;
-
-    SetDisplayTransform(NewDisplayPos, NewDisplayScale);
+    SetDisplayTransform(pos, scale);
 }
 
+void ImGuiIO::SetDisplayScale(ImVec2 origin, float scale)//[PR]
+{
+    ImGuiIO& io = GImGui->IO;
 
-void ImGui::NewFrame()
+    float new_display_scale = ImClamp(scale, io.DisplayScaleMin, io.DisplayScaleMax);
+    float k = DisplayScale / new_display_scale;
+
+    SetDisplayTransform((DisplayPos - origin) * k + origin, new_display_scale);
+}
+
+void ImGuiIO::ResetDisplayScale()
+{
+    ImVec2 c0 = DisplaySize / DisplayScale;
+    ImVec2 c1 = DisplaySize;
+    SetDisplayTransform(DisplayPos - (c1-c0)*0.5f, 1.0f);
+}
+
+void SetDisplaySize(ImVec2 new_display_size)
+{
+    ImGuiIO& io = GImGui->IO;
+
+    if(io.DisplaySize!=new_display_size)
+    {
+        io.DisplayScaleMin = ImMax(new_display_size.x, new_display_size.y) / io.MaxDisplaySize;
+        io.DisplayScaleNew = ImClamp(io.DisplayScale, io.DisplayScaleMin, io.DisplayScaleMax);
+
+        ImVec2 c0 = (io.DisplaySize / io.DisplayScale);
+        ImVec2 c1 = (new_display_size / io.DisplayScaleNew);
+
+        io.DisplaySize = new_display_size;
+        io.DisplayPosNew = io.DisplayPos - (c1-c0)*0.5f;
+        io.IsDisplayModified = true;
+    }
+}
+
+void ImGui::FrameActiveWindow()
+{
+    ImGuiContext& g = *GImGui;
+    ImGuiIO& io = GImGui->IO;
+
+    ImGuiWindow* w = g.NavWindow;
+
+    if(!w || !w->RootWindow)
+    {
+        return;
+    }
+
+    w = w->RootWindow;
+
+    ImVec2 pad(10.0f, 10.0f);
+
+    ImVec2 wpos = w->Pos - pad;
+    ImVec2 wsz = w->Size;
+    wsz += pad+pad;
+
+    ImVec2 p1 = io.DisplaySize;
+    ImVec2 p0 = p1/io.DisplayScale;
+    ImVec2 c = wpos+ wsz*0.5f - p0*0.5f;
+    float new_display_scale = 1.0f;
+
+    if(wsz.x > p1.x ||wsz.y > p1.y)
+    {
+        new_display_scale = (wsz.x>wsz.y) ? p1.x/wsz.x : p1.y/wsz.y;
+        new_display_scale = ImClamp(new_display_scale, io.DisplayScaleMin, io.DisplayScaleMax);
+        p1 /= new_display_scale;
+    }
+
+    io.SetDisplayTransformTarget(c- (p1-p0)*0.5f, new_display_scale);
+}
+
+void ImGui::NewFrame(ImVec2 display_size)
 {
 
     IM_ASSERT(GImGui != NULL && "No current context. Did you call ImGui::CreateContext() and ImGui::SetCurrentContext() ?");
     ImGuiContext& g = *GImGui;
+
+    SetDisplaySize(display_size);
 
     
     // Remove pending delete hooks before frame start.
