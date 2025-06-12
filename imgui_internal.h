@@ -43,6 +43,7 @@ Index of this file:
 */
 
 #pragma once
+#include <cstdint>
 #ifndef IMGUI_DISABLE
 
 //-----------------------------------------------------------------------------
@@ -1237,6 +1238,7 @@ struct ImGuiNextWindowData
     float                       BgAlphaVal;             // Override background alpha
     ImVec2                      MenuBarOffsetMinVal;    // (Always on) This is not exposed publicly, so we don't clear it and it doesn't have a corresponding flag (could we? for consistency?)
     ImGuiWindowRefreshFlags     RefreshFlagsVal;
+    void*                       UserData;
 
     ImGuiNextWindowData()       { memset(this, 0, sizeof(*this)); }
     inline void ClearFlags()    { HasFlags = ImGuiNextWindowDataFlags_None; }
@@ -2112,6 +2114,7 @@ struct ImGuiContext
     float                   WindowsBorderHoverPadding;          // Padding around resizable windows for which hovering on counts as hovering the window == ImMax(style.TouchExtraPadding, style.WindowBorderHoverPadding). This isn't so multi-dpi friendly.
     ImGuiID                 DebugBreakInWindow;                 // Set to break in Begin() call.
     ImGuiWindow*            CurrentWindow;                      // Window being drawn into
+    ImGuiWindow*            LastWindow;                         // Last window drawn into
     ImGuiWindow*            HoveredWindow;                      // Window the mouse is hovering. Will typically catch mouse inputs.
     ImGuiWindow*            HoveredWindowUnderMovingWindow;     // Hovered window ignoring MovingWindow. Only set if MovingWindow is set.
     ImGuiWindow*            HoveredWindowBeforeClear;           // Window the mouse is hovering. Filled even with _NoMouse. This is currently useful for multi-context compositors.
@@ -2608,6 +2611,13 @@ struct IMGUI_API ImGuiWindow
     int                     MemoryDrawListVtxCapacity;
     bool                    MemoryCompacted;                    // Set when window extraneous data have been garbage collected
 
+
+    ////
+
+    void*                   UserData;
+
+    ////
+
 public:
     ImGuiWindow(ImGuiContext* context, const char* name);
     ~ImGuiWindow();
@@ -3011,6 +3021,9 @@ namespace ImGui
     IMGUI_API ImGuiPlatformIO& GetPlatformIO(ImGuiContext* ctx);
     inline    ImGuiWindow*  GetCurrentWindowRead()      { ImGuiContext& g = *GImGui; return g.CurrentWindow; }
     inline    ImGuiWindow*  GetCurrentWindow()          { ImGuiContext& g = *GImGui; g.CurrentWindow->WriteAccessed = true; return g.CurrentWindow; }
+    inline    ImGuiWindow*  GetLastWindow()             { ImGuiContext& g = *GImGui; return g.LastWindow; }
+    
+
     IMGUI_API ImGuiWindow*  FindWindowByID(ImGuiID id);
     IMGUI_API ImGuiWindow*  FindWindowByName(const char* name);
     IMGUI_API void          UpdateWindowParentAndRootLinks(ImGuiWindow* window, ImGuiWindowFlags flags, ImGuiWindow* parent_window);

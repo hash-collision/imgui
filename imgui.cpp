@@ -5189,32 +5189,65 @@ static void SetupDrawListSharedData()
     g.DrawListSharedData.InitialFringeScale = 1.0f; // FIXME-DPI: Change this for some DPI scaling experiments.
 }
 
-void UpdateDisplayTransform()  //[PR]
-{    
 
-    //io.WantsRealtime ...
+void ModifyDisplayTransform(ImVec2 pos, float scale)  //[PR]
+{
+    IM_ASSERT(scale>0.0f);
 
     ImGuiIO& io = GImGui->IO;
 
+    float k = io.DisplayScale / io.DisplayScaleNew;
+    io.MousePos = (io.MousePos - io.DisplayPos) * k + io.DisplayPosNew;
+
+    for(ImVec2& mp : io.MouseClickedPos)
+    {
+        mp = (mp- io.DisplayPos) * k + io.DisplayPosNew;
+    }
+
+    io.DisplayPos = pos;
+    io.DisplayScale = scale;
+
+}
+
+void UpdateDisplayTransform()  //[PR]
+{    
+
+    ImGuiIO& io = GImGui->IO;
+    
+    if(io.IsDisplayTarget)
+    {
+
+        // float k = 0.05f;
+
+        // ImVec2 v = io.DisplayPosNew - io.DisplayPos;
+        // float s = io.DisplayScaleNew - io.DisplayScale;
+
+        // float d2 = v.x*v.x + v.y*v.y;
+
+        // if(d2 <= 1.0f && s < 0.0001f)
+        // {
+        //     io.IsDisplayTarget = false;
+        // }
+        // else 
+        // {
+        //     io.WantsRealtime = true;
+        //     ImVec2 new_pos = io.DisplayPos + v*k;
+        //     float new_scale = io.DisplayScale+ s*k;
+            
+
+        //     ModifyDisplayTransform(new_pos, new_scale);
+        // }
+
+        io.IsDisplayTarget = false;
+        io.IsDisplayModified = true;
 
 
+    }
 
     if(io.IsDisplayModified)
     {
-        IM_ASSERT(io.DisplayScaleNew>0.0f);
-
-        io.DisplayScale = io.DisplayScaleNew;
-        io.DisplayPos   = io.DisplayPosNew;
+        ModifyDisplayTransform(io.DisplayPosNew, io.DisplayScaleNew);
         io.IsDisplayModified = false;
-
-        float k = io.DisplayScale / io.DisplayScaleNew;
-
-        io.MousePos = (io.MousePos - io.DisplayPos) * k + io.DisplayPosNew;
-
-        for(ImVec2& mp : io.MouseClickedPos)
-        {
-            mp = (mp- io.DisplayPos) * k + io.DisplayPosNew;
-        }
     }
 
     io.DisplayScaleNew = io.DisplayScale;
@@ -5224,14 +5257,26 @@ void UpdateDisplayTransform()  //[PR]
 
 void ImGuiIO::SetDisplayTransform(ImVec2 pos, float scale)//[PR]
 {
-    DisplayPosNew   = pos;
-    DisplayScaleNew = scale;
-    IsDisplayModified = true;
+    if(pos!= DisplayPosNew || DisplayScaleNew!= scale)
+    {
+        DisplayPosNew   = pos;
+        DisplayScaleNew = scale;
+        IsDisplayModified = true;
+        IsDisplayTarget = false;
+    }
 }
 
 void ImGuiIO::SetDisplayTransformTarget(ImVec2 pos, float scale)//[PR]
 {
-    SetDisplayTransform(pos, scale);
+    if(pos!= DisplayPosNew || DisplayScaleNew!= scale)
+    {
+       // DisplayPosPrev = DisplayPos;
+       // DisplayScalePrev = DisplayScale;
+        DisplayPosNew   = pos;
+        DisplayScaleNew = scale;
+        IsDisplayTarget = true;
+    }
+
 }
 
 void ImGuiIO::SetDisplayScale(ImVec2 origin, float scale)//[PR]
@@ -5326,6 +5371,8 @@ void ImGui::NewFrame(ImVec2 display_size)
 
     // Load settings on first frame, save settings when modified (after a delay)
     UpdateSettings();
+
+    g.IO.WantsRealtime = false;//....
 
     UpdateDisplayTransform(); //[PR]
 
@@ -7185,8 +7232,13 @@ bool ImGui::Begin(const char* name, bool* p_open, ImGuiWindowFlags flags)
     // Find or create
     ImGuiWindow* window = FindWindowByName(name);
     const bool window_just_created = (window == NULL);
+
     if (window_just_created)
+    {
         window = CreateNewWindow(name, flags);
+    }
+
+    window->UserData = g.NextWindowData.UserData;
 
     // [DEBUG] Debug break requested by user
     if (g.DebugBreakInWindow == window->ID)
@@ -7963,6 +8015,8 @@ void ImGui::End()
     ImGuiContext& g = *GImGui;
     ImGuiWindow* window = g.CurrentWindow;
 
+    g.LastWindow = window;
+    
     // Error checking: verify that user hasn't called End() too many times!
     if (g.CurrentWindowStack.Size <= 1 && g.WithinFrameScopeWithImplicitWindow)
     {
@@ -8429,6 +8483,13 @@ void ImGui::SetWindowCollapsed(const char* name, bool collapsed, ImGuiCond cond)
 {
     if (ImGuiWindow* window = FindWindowByName(name))
         SetWindowCollapsed(window, collapsed, cond);
+}
+
+
+void ImGui::SetNextWindowUserData(void* user_data)
+{
+    ImGuiContext& g = *GImGui;
+    g.NextWindowData.UserData = user_data;
 }
 
 void ImGui::SetNextWindowPos(const ImVec2& pos, ImGuiCond cond, const ImVec2& pivot)
