@@ -340,9 +340,6 @@ namespace ImGui
     IMGUI_API ImDrawData*   GetDrawData();                              // valid after Render() and until the next call to NewFrame(). this is what you have to render.
 
     // Demo, Debug, Information
-
-    void FrameActiveWindow(); //[PR]
-
     IMGUI_API void          ShowDemoWindow(bool* p_open = NULL);        // create Demo window. demonstrate most ImGui features. call this to learn about the library! try to make it always available in your application!
     IMGUI_API void          ShowMetricsWindow(bool* p_open = NULL);     // create Metrics/Debugger window. display Dear ImGui internals: windows, draw commands, various internal state, etc.
     IMGUI_API void          ShowDebugLogWindow(bool* p_open = NULL);    // create Debug Log window. display a simplified log of important dear imgui events.
@@ -358,6 +355,10 @@ namespace ImGui
     IMGUI_API void          StyleColorsDark(ImGuiStyle* dst = NULL);    // new, recommended style (default)
     IMGUI_API void          StyleColorsLight(ImGuiStyle* dst = NULL);   // best used with borders and a custom, thicker font
     IMGUI_API void          StyleColorsClassic(ImGuiStyle* dst = NULL); // classic imgui style
+
+
+    //Random functions
+    void FrameRect(ImVec2 org, ImVec2 size); //[PR]
 
     // Windows
     // - Begin() = push window to the stack and start appending to it. End() = pop window from the stack.
@@ -2280,11 +2281,6 @@ struct ImGuiIO
 
     float       DisplayScaleMin; //[PR]
     float       DisplayScaleMax; //[PR]
-
-    // ImVec2      DisplayPosPrev; //[PR]
-    // float       DisplayScalePrev; //[PR]
-    bool        IsDisplayTarget; //[PR]
-
     ImVec2      MousePosScreen;//[PR]
 
     bool        WantsRealtime;//[PR]
@@ -2292,7 +2288,6 @@ struct ImGuiIO
     float       MaxDisplaySize;//[PR]
 
     void SetDisplayTransform(ImVec2 pos, float scale);//[PR]
-    void SetDisplayTransformTarget(ImVec2 pos, float scale);//[PR]
     void SetDisplayScale(ImVec2 origin, float scale);//[PR]
     void ResetDisplayScale();//[PR]
 

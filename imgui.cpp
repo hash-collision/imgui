@@ -5190,93 +5190,17 @@ static void SetupDrawListSharedData()
 }
 
 
-void ModifyDisplayTransform(ImVec2 pos, float scale)  //[PR]
-{
-    IM_ASSERT(scale>0.0f);
 
-    ImGuiIO& io = GImGui->IO;
-
-    float k = io.DisplayScale / io.DisplayScaleNew;
-    io.MousePos = (io.MousePos - io.DisplayPos) * k + io.DisplayPosNew;
-
-    for(ImVec2& mp : io.MouseClickedPos)
-    {
-        mp = (mp- io.DisplayPos) * k + io.DisplayPosNew;
-    }
-
-    io.DisplayPos = pos;
-    io.DisplayScale = scale;
-
-}
-
-void UpdateDisplayTransform()  //[PR]
-{    
-
-    ImGuiIO& io = GImGui->IO;
-    
-    if(io.IsDisplayTarget)
-    {
-
-        // float k = 0.05f;
-
-        // ImVec2 v = io.DisplayPosNew - io.DisplayPos;
-        // float s = io.DisplayScaleNew - io.DisplayScale;
-
-        // float d2 = v.x*v.x + v.y*v.y;
-
-        // if(d2 <= 1.0f && s < 0.0001f)
-        // {
-        //     io.IsDisplayTarget = false;
-        // }
-        // else 
-        // {
-        //     io.WantsRealtime = true;
-        //     ImVec2 new_pos = io.DisplayPos + v*k;
-        //     float new_scale = io.DisplayScale+ s*k;
-            
-
-        //     ModifyDisplayTransform(new_pos, new_scale);
-        // }
-
-        io.IsDisplayTarget = false;
-        io.IsDisplayModified = true;
-
-
-    }
-
-    if(io.IsDisplayModified)
-    {
-        ModifyDisplayTransform(io.DisplayPosNew, io.DisplayScaleNew);
-        io.IsDisplayModified = false;
-    }
-
-    io.DisplayScaleNew = io.DisplayScale;
-    io.DisplayPosNew   = io.DisplayPos;
-}
 
 
 void ImGuiIO::SetDisplayTransform(ImVec2 pos, float scale)//[PR]
 {
-    if(pos!= DisplayPosNew || DisplayScaleNew!= scale)
+    if(pos!= DisplayPos || DisplayScale!= scale)
     {
         DisplayPosNew   = pos;
         DisplayScaleNew = scale;
         IsDisplayModified = true;
-        IsDisplayTarget = false;
     }
-}
-
-void ImGuiIO::SetDisplayTransformTarget(ImVec2 pos, float scale)//[PR]
-{
-    if(pos!= DisplayPosNew || DisplayScaleNew!= scale)
-    {
-       // DisplayPosPrev = DisplayPos;
-       // DisplayScalePrev = DisplayScale;
-        DisplayPosNew   = pos;
-        DisplayScaleNew = scale;
-        IsDisplayTarget = true;
-    }
-
 }
 
 void ImGuiIO::SetDisplayScale(ImVec2 origin, float scale)//[PR]
@@ -5289,14 +5213,21 @@ void ImGuiIO::SetDisplayScale(ImVec2 origin, float scale)//[PR]
     SetDisplayTransform((DisplayPos - origin) * k + origin, new_display_scale);
 }
 
-void ImGuiIO::ResetDisplayScale()
+void ImGuiIO::ResetDisplayScale()//[PR]
 {
-    ImVec2 c0 = DisplaySize / DisplayScale;
-    ImVec2 c1 = DisplaySize;
-    SetDisplayTransform(DisplayPos - (c1-c0)*0.5f, 1.0f);
+    ImGuiIO& io = GImGui->IO;
+
+    //SHIT!
+
+    return;
+    
+
+    ImVec2 c(0.0f, 0.0f);// = io.DisplayPos;
+
+    io.SetDisplayTransform(c, 1.0f);
 }
 
-void SetDisplaySize(ImVec2 new_display_size)
+void SetDisplaySize(ImVec2 new_display_size)//[PR]
 {
     ImGuiIO& io = GImGui->IO;
 
@@ -5314,39 +5245,54 @@ void SetDisplaySize(ImVec2 new_display_size)
     }
 }
 
-void ImGui::FrameActiveWindow()
+void ImGui::FrameRect(ImVec2 org, ImVec2 size)//[PR]
 {
-    ImGuiContext& g = *GImGui;
     ImGuiIO& io = GImGui->IO;
-
-    ImGuiWindow* w = g.NavWindow;
-
-    if(!w || !w->RootWindow)
-    {
-        return;
-    }
-
-    w = w->RootWindow;
-
+    
     ImVec2 pad(10.0f, 10.0f);
 
-    ImVec2 wpos = w->Pos - pad;
-    ImVec2 wsz = w->Size;
-    wsz += pad+pad;
+    ImVec2 wpos = org - pad;
+    ImVec2 wsz = size + pad+pad;
 
     ImVec2 p1 = io.DisplaySize;
     ImVec2 p0 = p1/io.DisplayScale;
-    ImVec2 c = wpos+ wsz*0.5f - p0*0.5f;
-    float new_display_scale = 1.0f;
 
-    if(wsz.x > p1.x ||wsz.y > p1.y)
+    float new_display_scale = 1.0f;
+    ImVec2 c = wpos + wsz*0.5f - p0*0.5f;
+
+    if(wsz.x > p1.x || wsz.y > p1.y)
     {
         new_display_scale = ImMin(p1.x/wsz.x, p1.y/wsz.y);
         new_display_scale = ImClamp(new_display_scale, io.DisplayScaleMin, io.DisplayScaleMax);
-        p1 /= new_display_scale;
+
+        p1/= new_display_scale;
+        c -= (p1-p0)*0.5f;
     }
 
-    io.SetDisplayTransformTarget(c- (p1-p0)*0.5f, new_display_scale);
+
+    io.SetDisplayTransform(c, new_display_scale);
+
+}
+
+
+void UpdateDisplayTransform()  //[PR]
+{    
+    ImGuiIO& io = GImGui->IO;
+    
+    if(io.IsDisplayModified)
+    {
+        float k = io.DisplayScale / io.DisplayScaleNew;
+        io.MousePos = (io.MousePos - io.DisplayPos) * k + io.DisplayPosNew;
+
+        for(ImVec2& mp : io.MouseClickedPos)
+        {
+            mp = (mp- io.DisplayPos) * k + io.DisplayPosNew;
+        }
+
+        io.DisplayPos = io.DisplayPosNew;
+        io.DisplayScale = io.DisplayScaleNew;
+        io.IsDisplayModified = false;
+    }
 }
 
 void ImGui::NewFrame(ImVec2 display_size)
@@ -8016,7 +7962,7 @@ void ImGui::End()
     ImGuiWindow* window = g.CurrentWindow;
 
     g.LastWindow = window;
-    
+
     // Error checking: verify that user hasn't called End() too many times!
     if (g.CurrentWindowStack.Size <= 1 && g.WithinFrameScopeWithImplicitWindow)
     {
