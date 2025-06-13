@@ -5189,10 +5189,6 @@ static void SetupDrawListSharedData()
     g.DrawListSharedData.InitialFringeScale = 1.0f; // FIXME-DPI: Change this for some DPI scaling experiments.
 }
 
-
-
-
-
 void ImGuiIO::SetDisplayTransform(ImVec2 pos, float scale)//[PR]
 {
     if(pos!= DisplayPos || DisplayScale!= scale)
@@ -5216,15 +5212,9 @@ void ImGuiIO::SetDisplayScale(ImVec2 origin, float scale)//[PR]
 void ImGuiIO::ResetDisplayScale()//[PR]
 {
     ImGuiIO& io = GImGui->IO;
+    ImVec2 c = io.DisplayPos + (io.DisplaySize/io.DisplayScale) * 0.5f;
+    SetDisplayScale(c, 1.0f);
 
-    //SHIT!
-
-    return;
-    
-
-    ImVec2 c(0.0f, 0.0f);// = io.DisplayPos;
-
-    io.SetDisplayTransform(c, 1.0f);
 }
 
 void SetDisplaySize(ImVec2 new_display_size)//[PR]
@@ -5249,13 +5239,16 @@ void ImGui::FrameRect(ImVec2 org, ImVec2 size)//[PR]
 {
     ImGuiIO& io = GImGui->IO;
     
+    float is = 1.0f / io.DisplayScale;
+    
     ImVec2 pad(10.0f, 10.0f);
+    pad*= is;
 
     ImVec2 wpos = org - pad;
     ImVec2 wsz = size + pad+pad;
 
     ImVec2 p1 = io.DisplaySize;
-    ImVec2 p0 = p1/io.DisplayScale;
+    ImVec2 p0 = p1*is;
 
     float new_display_scale = 1.0f;
     ImVec2 c = wpos + wsz*0.5f - p0*0.5f;
@@ -5269,9 +5262,7 @@ void ImGui::FrameRect(ImVec2 org, ImVec2 size)//[PR]
         c -= (p1-p0)*0.5f;
     }
 
-
     io.SetDisplayTransform(c, new_display_scale);
-
 }
 
 
@@ -5279,14 +5270,19 @@ void UpdateDisplayTransform()  //[PR]
 {    
     ImGuiIO& io = GImGui->IO;
     
+    auto scale = [&io](ImVec2& pnt, float k)
+    {
+        pnt = (pnt - io.DisplayPos) * k + io.DisplayPosNew;
+    };
+
     if(io.IsDisplayModified)
     {
         float k = io.DisplayScale / io.DisplayScaleNew;
-        io.MousePos = (io.MousePos - io.DisplayPos) * k + io.DisplayPosNew;
+        scale(io.MousePos, k);
 
         for(ImVec2& mp : io.MouseClickedPos)
         {
-            mp = (mp- io.DisplayPos) * k + io.DisplayPosNew;
+            scale(mp, k);
         }
 
         io.DisplayPos = io.DisplayPosNew;
