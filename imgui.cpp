@@ -1432,8 +1432,8 @@ ImGuiIO::ImGuiIO()
     memset(this, 0, sizeof(*this));
     IM_STATIC_ASSERT(IM_ARRAYSIZE(ImGuiIO::MouseDown) == ImGuiMouseButton_COUNT && IM_ARRAYSIZE(ImGuiIO::MouseClicked) == ImGuiMouseButton_COUNT);
 
-    MaxDisplaySize = 16384.0f;
-    DisplayScaleMax  = 1.0f;
+    MaxDisplaySize = 100000.0f;
+    DisplayScaleMax  = 2.0f;
 
     // Settings
     ConfigFlags = ImGuiConfigFlags_None;
