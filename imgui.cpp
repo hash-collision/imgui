@@ -1432,8 +1432,8 @@ ImGuiIO::ImGuiIO()
     memset(this, 0, sizeof(*this));
     IM_STATIC_ASSERT(IM_ARRAYSIZE(ImGuiIO::MouseDown) == ImGuiMouseButton_COUNT && IM_ARRAYSIZE(ImGuiIO::MouseClicked) == ImGuiMouseButton_COUNT);
 
-    MaxDisplaySize = 100000.0f;
-    DisplayScaleMax  = 2.0f;
+    DisplayScaleMin = 0.01f;
+    DisplayScaleMax = 1.0f;
 
     // Settings
     ConfigFlags = ImGuiConfigFlags_None;
@@ -5223,7 +5223,6 @@ void SetDisplaySize(ImVec2 new_display_size)//[PR]
 
     if(io.DisplaySize!=new_display_size)
     {
-        io.DisplayScaleMin = ImMax(new_display_size.x, new_display_size.y) / io.MaxDisplaySize;
         io.DisplayScaleNew = ImClamp(io.DisplayScale, io.DisplayScaleMin, io.DisplayScaleMax);
 
         ImVec2 c0 = (io.DisplaySize / io.DisplayScale);
@@ -5234,37 +5233,6 @@ void SetDisplaySize(ImVec2 new_display_size)//[PR]
         io.IsDisplayModified = true;
     }
 }
-
-void ImGui::FrameRect(ImVec2 org, ImVec2 size)//[PR]
-{
-    ImGuiIO& io = GImGui->IO;
-    
-    float is = 1.0f / io.DisplayScale;
-    
-    ImVec2 pad(10.0f, 10.0f);
-    pad*= is;
-
-    ImVec2 wpos = org - pad;
-    ImVec2 wsz = size + pad+pad;
-
-    ImVec2 p1 = io.DisplaySize;
-    ImVec2 p0 = p1*is;
-
-    float new_display_scale = 1.0f;
-    ImVec2 c = wpos + wsz*0.5f - p0*0.5f;
-
-    if(wsz.x > p1.x || wsz.y > p1.y)
-    {
-        new_display_scale = ImMin(p1.x/wsz.x, p1.y/wsz.y);
-        new_display_scale = ImClamp(new_display_scale, io.DisplayScaleMin, io.DisplayScaleMax);
-
-        p1/= new_display_scale;
-        c -= (p1-p0)*0.5f;
-    }
-
-    io.SetDisplayTransform(c, new_display_scale);
-}
-
 
 void UpdateDisplayTransform()  //[PR]
 {    
