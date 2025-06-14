@@ -1212,7 +1212,9 @@ enum ImGuiNextWindowDataFlags_
     ImGuiNextWindowDataFlags_HasScroll          = 1 << 7,
     ImGuiNextWindowDataFlags_HasWindowFlags     = 1 << 8,
     ImGuiNextWindowDataFlags_HasChildFlags      = 1 << 9,
-    ImGuiNextWindowDataFlags_HasRefreshPolicy   = 1 << 10
+    ImGuiNextWindowDataFlags_HasRefreshPolicy   = 1 << 10,
+    ImGuiNextWindowDataFlags_HasUserData        = 1 << 11,
+    ImGuiNextWindowDataFlags_HasIsScreenspace   = 1 << 12,
 };
 
 // Storage for SetNexWindow** functions
@@ -1239,6 +1241,7 @@ struct ImGuiNextWindowData
     ImVec2                      MenuBarOffsetMinVal;    // (Always on) This is not exposed publicly, so we don't clear it and it doesn't have a corresponding flag (could we? for consistency?)
     ImGuiWindowRefreshFlags     RefreshFlagsVal;
     void*                       UserData;
+    bool                        IsScreenspace;
 
     ImGuiNextWindowData()       { memset(this, 0, sizeof(*this)); }
     inline void ClearFlags()    { HasFlags = ImGuiNextWindowDataFlags_None; }
@@ -2074,6 +2077,9 @@ struct ImGuiContextHook
 
 struct ImGuiContext
 {
+    int                     Lod;// [PR]
+    float                   Lod0Scale;
+    float                   PixelWidth;// [PR]
     bool                    DisableWindowInputs; // [PR]
     bool                    Initialized;
     bool                    FontAtlasOwnedByContext;            // IO.Fonts-> is owned by the ImGuiContext and will be destructed along with it.
@@ -2612,9 +2618,10 @@ struct IMGUI_API ImGuiWindow
     bool                    MemoryCompacted;                    // Set when window extraneous data have been garbage collected
 
 
-    ////
+    ////[PR]
 
     void*                   UserData;
+    bool                    IsScreenspace;
 
     ////
 
