@@ -2079,6 +2079,7 @@ struct ImGuiContext
 {
     int                     Lod;// [PR]
     float                   Lod0Scale;
+    float                   Lod1Scale;
     float                   PixelWidth;// [PR]
     bool                    DisableWindowInputs; // [PR]
     bool                    Initialized;

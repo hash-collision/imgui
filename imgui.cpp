@@ -3938,6 +3938,7 @@ ImGuiContext::ImGuiContext(ImFontAtlas* shared_font_atlas)
     InputTextState.Ctx = this;
 
     Lod0Scale = 0.1f;
+    Lod1Scale = 0.05f;
 
     Initialized = false;
     FontAtlasOwnedByContext = shared_font_atlas ? false : true;
@@ -5271,6 +5272,12 @@ void UpdateDisplayTransform()  //[PR]
     {
         g.Lod = 1;
     }
+
+    if(io.DisplayScale < g.Lod1Scale)
+    {
+        g.Lod = 2;
+    }
+
 
     g.PixelWidth = 1.0f/io.DisplayScale;
 }
