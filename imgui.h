@@ -1634,6 +1634,7 @@ enum ImGuiCol_
     ImGuiCol_WindowBg,              // Background of normal windows
     ImGuiCol_ChildBg,               // Background of child windows
     ImGuiCol_PopupBg,               // Background of popups, menus, tooltips windows
+    ImGuiCol_DropShadow,
     ImGuiCol_Border,
     ImGuiCol_BorderActive,
     ImGuiCol_BorderShadow,

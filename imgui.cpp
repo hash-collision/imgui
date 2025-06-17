@@ -6950,10 +6950,13 @@ void ImGui::RenderWindowDecorations(ImGuiWindow* window, const ImRect& title_bar
         if (!(flags & ImGuiWindowFlags_NoBackground))
         {
             //Drop shadow
-            ImU32 shad_col = IM_COL32(0, 0, 0, 50);
-            const ImVec2 offset(8.0f, 8.0f);
-            const ImVec2 shrink(4.0f, 4.0f);
-            const float expand = 12.0f;
+
+
+            ImU32 shad_col = GetColorU32(ImGuiCol_DropShadow);
+
+            const ImVec2 offset(10.0f, 10.0f);
+            const ImVec2 shrink(6.0f, 6.0f);
+            const float expand = 16.0f;
             
             ImVec2 p = window->Pos + offset;
             ImVec2 sz = window->Size - shrink - shrink;
