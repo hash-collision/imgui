@@ -6964,14 +6964,14 @@ void ImGui::RenderWindowDecorations(ImGuiWindow* window, const ImRect& title_bar
                 }
             }
 
-            float k = ImMin( float(z) / 4.0f, 4.0f);
+            float k = ImMin( float(z) / 6.0f, 4.0f);
 
             k = powf(k, 2.0f) + 1.0f;
 
             //Drop shadow
             ImU32 shad_col = GetColorU32(ImGuiCol_DropShadow);
 
-            ImVec2 offset(4.0f, 4.0f);
+            ImVec2 offset(2.0f, 2.0f);
             float expand = 5.0f;
 
             offset*= k;
@@ -8501,7 +8501,7 @@ void ImGui::SetWindowCollapsed(const char* name, bool collapsed, ImGuiCond cond)
         SetWindowCollapsed(window, collapsed, cond);
 }
 
-void ImGui::SetNextWindowUserData(void* user_data)
+void ImGui::SetNextWindowUserData(uint64_t user_data)
 {
     ImGuiContext& g = *GImGui;
     g.NextWindowData.UserData = user_data;

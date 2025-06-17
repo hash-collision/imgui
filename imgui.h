@@ -408,7 +408,7 @@ namespace ImGui
     // Window manipulation
     // - Prefer using SetNextXXX functions (before Begin) rather that SetXXX functions (after Begin).
 
-    IMGUI_API void          SetNextWindowUserData(void* user_data);
+    IMGUI_API void          SetNextWindowUserData(uint64_t user_data);
     IMGUI_API void          SetNextWindowIsScreenspace(bool is_screenspace = true);
 
 
