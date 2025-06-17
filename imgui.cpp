@@ -6949,18 +6949,37 @@ void ImGui::RenderWindowDecorations(ImGuiWindow* window, const ImRect& title_bar
         // Window background
         if (!(flags & ImGuiWindowFlags_NoBackground))
         {
+            int z = 0;
+
+            for (ImGuiWindow* w : g.Windows)
+            {
+                if(w==window)
+                {
+                    break;
+                }
+
+                if(!w->Hidden && !w->IsFallbackWindow)
+                {
+                    z++;
+                }
+            }
+
+            float k = ImMin( float(z) / 4.0f, 4.0f);
+
+            k = powf(k, 2.0f) + 1.0f;
+
             //Drop shadow
-
-
             ImU32 shad_col = GetColorU32(ImGuiCol_DropShadow);
 
-            const ImVec2 offset(10.0f, 10.0f);
-            const ImVec2 shrink(6.0f, 6.0f);
-            const float expand = 16.0f;
+            ImVec2 offset(4.0f, 4.0f);
+            float expand = 5.0f;
+
+            offset*= k;
+            expand*= k;
             
             ImVec2 p = window->Pos + offset;
-            ImVec2 sz = window->Size - shrink - shrink;
-            ImVec2 p1 = p + sz + shrink;
+            ImVec2 sz = window->Size;
+            ImVec2 p1 = p + sz;
             window->DrawList->AddRectExpanded(p, p1, shad_col, window_rounding, ImDrawFlags_RoundCornersAll, expand);
 
             ImU32 bg_col = GetColorU32(GetWindowBgColorIdx(window));
