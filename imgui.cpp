@@ -6966,6 +6966,11 @@ void ImGui::RenderWindowDecorations(ImGuiWindow* window, const ImRect& title_bar
             {
                 bg_col = GetColorU32(ImGuiCol_WindowSelected);
             }
+            else 
+            if(window->IsPendingSelected)
+            {
+                bg_col = GetColorU32(ImGuiCol_WindowSelected, 0.5f);
+            }
 
             bool override_alpha = false;
             float alpha = 1.0f;
