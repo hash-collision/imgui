@@ -1264,7 +1264,7 @@ static void             UpdateKeyRoutingTable(ImGuiKeyRoutingTable* rt);
 // Misc
 static void             UpdateSettings();
 static int              UpdateWindowManualResize(ImGuiWindow* window, const ImVec2& size_auto_fit, int* border_hovered, int* border_held, int resize_grip_count, ImU32 resize_grip_col[4], const ImRect& visibility_rect);
-static void             RenderWindowOuterBorders(ImGuiWindow* window);
+static void             RenderWindowOuterBorders(ImGuiWindow* window, bool is_highlight);
 static void             RenderWindowDecorations(ImGuiWindow* window, const ImRect& title_bar_rect, bool title_bar_is_highlight, bool handle_borders_and_resize_grips, int resize_grip_count, const ImU32 resize_grip_col[4], float resize_grip_draw_size);
 static void             RenderWindowTitleBarContents(ImGuiWindow* window, const ImRect& title_bar_rect, const char* name, bool* p_open);
 static void             RenderDimmedBackgroundBehindWindow(ImGuiWindow* window, ImU32 col);
@@ -6882,21 +6882,29 @@ static void RenderWindowOuterSingleBorder(ImGuiWindow* window, int border_n, ImU
     window->DrawList->PathStroke(border_col, ImDrawFlags_None, border_size);
 }
 
-static void ImGui::RenderWindowOuterBorders(ImGuiWindow* window)
+static void ImGui::RenderWindowOuterBorders(ImGuiWindow* window, bool is_highlight)
 {
     ImGuiContext& g = *GImGui;
     const float border_size = window->WindowBorderSize * g.PixelWidth;
-    const ImU32 border_col = GetColorU32(ImGuiCol_Border);
+    const ImU32 border_col = GetColorU32(is_highlight ? ImGuiCol_BorderActive : ImGuiCol_Border);
 
-    if (border_size > 0.0f && (window->Flags & ImGuiWindowFlags_NoBackground) == 0)
-        window->DrawList->AddRect(window->Pos, window->Pos + window->Size, border_col, window->WindowRounding, 0, border_size);
-    else if (border_size > 0.0f)
+
+    if (border_size > 0.0f)
     {
-        if (window->ChildFlags & ImGuiChildFlags_ResizeX) // Similar code as 'resize_border_mask' computation in UpdateWindowManualResize() but we specifically only always draw explicit child resize border.
-            RenderWindowOuterSingleBorder(window, 1, border_col, border_size);
-        if (window->ChildFlags & ImGuiChildFlags_ResizeY)
-            RenderWindowOuterSingleBorder(window, 3, border_col, border_size);
+        if ( (window->Flags & ImGuiWindowFlags_NoBackground) == 0)
+        {
+            window->DrawList->AddRect(window->Pos, window->Pos + window->Size, border_col, window->WindowRounding, 0, border_size);
+        }
+        else 
+        {
+            if (window->ChildFlags & ImGuiChildFlags_ResizeX) // Similar code as 'resize_border_mask' computation in UpdateWindowManualResize() but we specifically only always draw explicit child resize border.
+                RenderWindowOuterSingleBorder(window, 1, border_col, border_size);
+            if (window->ChildFlags & ImGuiChildFlags_ResizeY)
+                RenderWindowOuterSingleBorder(window, 3, border_col, border_size);
+        }
     }
+
+
     if (window->ResizeBorderHovered != -1 || window->ResizeBorderHeld != -1)
     {
         const int border_n = (window->ResizeBorderHeld != -1) ? window->ResizeBorderHeld : window->ResizeBorderHovered;
@@ -6938,7 +6946,6 @@ void ImGui::RenderWindowDecorations(ImGuiWindow* window, const ImRect& title_bar
     }
     else
     {
-       
         // Window background
         if (!(flags & ImGuiWindowFlags_NoBackground))
         {
@@ -6953,8 +6960,13 @@ void ImGui::RenderWindowDecorations(ImGuiWindow* window, const ImRect& title_bar
             ImVec2 p1 = p + sz + shrink;
             window->DrawList->AddRectExpanded(p, p1, shad_col, window_rounding, ImDrawFlags_RoundCornersAll, expand);
 
-
             ImU32 bg_col = GetColorU32(GetWindowBgColorIdx(window));
+
+            if(window->IsSelected || window == g.NavWindow)
+            {
+                bg_col = GetColorU32(ImGuiCol_WindowSelected);
+            }
+
             bool override_alpha = false;
             float alpha = 1.0f;
             if (g.NextWindowData.HasFlags & ImGuiNextWindowDataFlags_HasBgAlpha)
@@ -6966,6 +6978,7 @@ void ImGui::RenderWindowDecorations(ImGuiWindow* window, const ImRect& title_bar
                 bg_col = (bg_col & ~IM_COL32_A_MASK) | (IM_F32_TO_INT8_SAT(alpha) << IM_COL32_A_SHIFT);
             window->DrawList->AddRectFilled(window->Pos + ImVec2(0, window->TitleBarHeight), window->Pos + window->Size, bg_col, window_rounding, (flags & ImGuiWindowFlags_NoTitleBar) ? 0 : ImDrawFlags_RoundCornersBottom);
         }
+
 
         // Title bar
         if (!(flags & ImGuiWindowFlags_NoTitleBar))
@@ -7010,7 +7023,7 @@ void ImGui::RenderWindowDecorations(ImGuiWindow* window, const ImRect& title_bar
 
         // Borders
         if (handle_borders_and_resize_grips)
-            RenderWindowOuterBorders(window);
+            RenderWindowOuterBorders(window, title_bar_is_highlight);
     }
     window->DC.NavLayerCurrent = ImGuiNavLayer_Main;
 }
@@ -7749,7 +7762,9 @@ bool ImGui::Begin(const char* name, bool* p_open, ImGuiWindowFlags flags)
 
             // Handle title bar, scrollbar, resize grips and resize borders
             const ImGuiWindow* window_to_highlight = g.NavWindowingTarget ? g.NavWindowingTarget : g.NavWindow;
-            const bool title_bar_is_highlight = want_focus || (window_to_highlight && window->RootWindowForTitleBarHighlight == window_to_highlight->RootWindowForTitleBarHighlight);
+            bool title_bar_is_highlight = want_focus || (window_to_highlight && window->RootWindowForTitleBarHighlight == window_to_highlight->RootWindowForTitleBarHighlight);
+            title_bar_is_highlight |= window->IsSelected;
+
             const bool handle_borders_and_resize_grips = true; // This exists to facilitate merge with 'docking' branch.
             RenderWindowDecorations(window, title_bar_rect, title_bar_is_highlight, handle_borders_and_resize_grips, resize_grip_count, resize_grip_col, resize_grip_draw_size);
 

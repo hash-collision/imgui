@@ -2623,6 +2623,7 @@ struct IMGUI_API ImGuiWindow
 
     void*                   UserData;
     bool                    IsScreenspace;
+    bool                    IsSelected;
 
     ////
 
