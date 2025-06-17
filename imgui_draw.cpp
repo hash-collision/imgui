@@ -1456,6 +1456,83 @@ void ImDrawList::AddLine(const ImVec2& p1, const ImVec2& p2, ImU32 col, float th
     PathStroke(col, 0, thickness);
 }
 
+////////////////////
+
+
+void ImDrawList::AddRectExpanded(const ImVec2& a, const ImVec2& b, ImU32 col, float rounding, int rounding_corners_flags, float expand)
+{
+    if ((col & IM_COL32_A_MASK) == 0)
+        return;
+
+    PathRect(a, b, rounding, rounding_corners_flags);
+    PathFillExpanded(_Path.Data, _Path.Size, col, expand);
+    _Path.Size = 0;
+}
+
+
+void ImDrawList::PathFillExpanded(const ImVec2* points, const int points_count, ImU32 col, float expand)
+{
+
+    const ImVec2 uv = _Data->TexUvWhitePixel;
+
+    const ImU32 col_trans = col & ~IM_COL32_A_MASK;
+    const int idx_count = (points_count-2)*3 + points_count*6;
+    const int vtx_count = (points_count*2);
+    PrimReserve(idx_count, vtx_count);
+
+    // Add indexes for fill
+    unsigned int vtx_inner_idx = _VtxCurrentIdx;
+    unsigned int vtx_outer_idx = _VtxCurrentIdx+1;
+    for (int i = 2; i < points_count; i++)
+    {
+        _IdxWritePtr[0] = (ImDrawIdx)(vtx_inner_idx); _IdxWritePtr[1] = (ImDrawIdx)(vtx_inner_idx+((i-1)<<1)); _IdxWritePtr[2] = (ImDrawIdx)(vtx_inner_idx+(i<<1));
+        _IdxWritePtr += 3;
+    }
+
+    // Compute normals
+    ImVec2* temp_normals = (ImVec2*)alloca(points_count * sizeof(ImVec2)); //-V630
+    for (int i0 = points_count-1, i1 = 0; i1 < points_count; i0 = i1++)
+    {
+        const ImVec2& p0 = points[i0];
+        const ImVec2& p1 = points[i1];
+        float dx = p1.x - p0.x;
+        float dy = p1.y - p0.y;
+        IM_NORMALIZE2F_OVER_ZERO(dx, dy);
+        temp_normals[i0].x = dy;
+        temp_normals[i0].y = -dx;
+    }
+
+    for (int i0 = points_count-1, i1 = 0; i1 < points_count; i0 = i1++)
+    {
+        // Average normals
+        const ImVec2& n0 = temp_normals[i0];
+        const ImVec2& n1 = temp_normals[i1];
+        float dm_x = (n0.x + n1.x) * 0.5f;
+        float dm_y = (n0.y + n1.y) * 0.5f;
+     //   IM_NORMALIZE2F_OVER_EPSILON_CLAMP(dm_x, dm_y, 0.000001f, 100.0f);
+        dm_x *= expand;
+        dm_y *= expand;
+
+        // Add vertices
+        _VtxWritePtr[0].pos.x = (points[i1].x       ); _VtxWritePtr[0].pos.y = (points[i1].y       ); _VtxWritePtr[0].uv = uv; _VtxWritePtr[0].col = col;        // Inner
+        _VtxWritePtr[1].pos.x = (points[i1].x + dm_x); _VtxWritePtr[1].pos.y = (points[i1].y + dm_y); _VtxWritePtr[1].uv = uv; _VtxWritePtr[1].col = col_trans;  // Outer
+        _VtxWritePtr += 2;
+
+        // Add indexes for fringes
+        _IdxWritePtr[0] = (ImDrawIdx)(vtx_inner_idx+(i1<<1)); _IdxWritePtr[1] = (ImDrawIdx)(vtx_inner_idx+(i0<<1)); _IdxWritePtr[2] = (ImDrawIdx)(vtx_outer_idx+(i0<<1));
+        _IdxWritePtr[3] = (ImDrawIdx)(vtx_outer_idx+(i0<<1)); _IdxWritePtr[4] = (ImDrawIdx)(vtx_outer_idx+(i1<<1)); _IdxWritePtr[5] = (ImDrawIdx)(vtx_inner_idx+(i1<<1));
+        _IdxWritePtr += 6;
+    }
+    _VtxCurrentIdx += (ImDrawIdx)vtx_count;
+}
+
+
+
+
+
+
+///////////////////////////
+
 // p_min = upper-left, p_max = lower-right
 // Note we don't render 1 pixels sized rectangles properly.
 void ImDrawList::AddRect(const ImVec2& p_min, const ImVec2& p_max, ImU32 col, float rounding, ImDrawFlags flags, float thickness)

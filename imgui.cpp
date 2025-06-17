@@ -6938,9 +6938,22 @@ void ImGui::RenderWindowDecorations(ImGuiWindow* window, const ImRect& title_bar
     }
     else
     {
+       
         // Window background
         if (!(flags & ImGuiWindowFlags_NoBackground))
         {
+            //Drop shadow
+            ImU32 shad_col = IM_COL32(0, 0, 0, 50);
+            const ImVec2 offset(8.0f, 8.0f);
+            const ImVec2 shrink(4.0f, 4.0f);
+            const float expand = 12.0f;
+            
+            ImVec2 p = window->Pos + offset;
+            ImVec2 sz = window->Size - shrink - shrink;
+            ImVec2 p1 = p + sz + shrink;
+            window->DrawList->AddRectExpanded(p, p1, shad_col, window_rounding, ImDrawFlags_RoundCornersAll, expand);
+
+
             ImU32 bg_col = GetColorU32(GetWindowBgColorIdx(window));
             bool override_alpha = false;
             float alpha = 1.0f;

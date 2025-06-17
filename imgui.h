@@ -3208,6 +3208,9 @@ struct ImDrawList
     IMGUI_API void  AddConvexPolyFilled(const ImVec2* points, int num_points, ImU32 col);
     IMGUI_API void  AddConcavePolyFilled(const ImVec2* points, int num_points, ImU32 col);
 
+    IMGUI_API void AddRectExpanded(const ImVec2& a, const ImVec2& b, ImU32 col, float rounding, int rounding_corners_flags, float expand);                   
+    IMGUI_API void PathFillExpanded(const ImVec2* points, const int points_count, ImU32 col, float expand);
+
     // Image primitives
     // - Read FAQ to understand what ImTextureID is.
     // - "p_min" and "p_max" represent the upper-left and lower-right corners of the rectangle.
