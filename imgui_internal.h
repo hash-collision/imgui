@@ -2506,6 +2506,17 @@ struct IMGUI_API ImGuiWindowTempData
     ImVector<float>         TextWrapPosStack;       // Store text wrap pos to restore (attention: .back() is not == TextWrapPos)
 };
 
+
+
+enum ImGuiWindowSelectionState_
+{
+    WINDOW_STATE_UNSELECTED,
+    WINDOW_STATE_SELECTED_PENDING,
+    WINDOW_STATE_SELECTED
+};
+
+typedef uint32_t ImGuiWindowSelectionState; // enum ImGuiWindowSelectionState_
+
 // Storage for one window
 struct IMGUI_API ImGuiWindow
 {
@@ -2621,11 +2632,9 @@ struct IMGUI_API ImGuiWindow
 
     ////[PR]
 
-    uint64_t                UserData;
-    bool                    IsScreenspace;
-    bool                    IsSelected;
-    bool                    IsPendingSelected;
-
+    uint64_t                   UserData;
+    ImGuiWindowSelectionState  SelectedState;
+    bool                       IsScreenspace;
     ////
 
 public:

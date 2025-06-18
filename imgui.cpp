@@ -6886,7 +6886,13 @@ static void ImGui::RenderWindowOuterBorders(ImGuiWindow* window, bool is_highlig
 {
     ImGuiContext& g = *GImGui;
     const float border_size = window->WindowBorderSize * g.PixelWidth;
-    const ImU32 border_col = GetColorU32(is_highlight ? ImGuiCol_BorderActive : ImGuiCol_Border);
+    ImU32 border_col = GetColorU32(is_highlight ? ImGuiCol_BorderActive : ImGuiCol_Border);
+
+
+    if(window->SelectedState == WINDOW_STATE_SELECTED_PENDING)
+    {
+        border_col = GetColorU32(ImGuiCol_WindowSelectedPending);
+    }
 
 
     if (border_size > 0.0f)
@@ -6984,12 +6990,12 @@ void ImGui::RenderWindowDecorations(ImGuiWindow* window, const ImRect& title_bar
 
             ImU32 bg_col = GetColorU32(GetWindowBgColorIdx(window));
 
-            if(window->IsSelected || window == g.NavWindow)
+            if(window->SelectedState==WINDOW_STATE_SELECTED || window == g.NavWindow)
             {
                 bg_col = GetColorU32(ImGuiCol_WindowSelected);
             }
             else 
-            if(window->IsPendingSelected)
+            if(window->SelectedState==WINDOW_STATE_SELECTED_PENDING)
             {
                 bg_col = GetColorU32(ImGuiCol_WindowSelected, 0.5f);
             }
@@ -7790,7 +7796,7 @@ bool ImGui::Begin(const char* name, bool* p_open, ImGuiWindowFlags flags)
             // Handle title bar, scrollbar, resize grips and resize borders
             const ImGuiWindow* window_to_highlight = g.NavWindowingTarget ? g.NavWindowingTarget : g.NavWindow;
             bool title_bar_is_highlight = want_focus || (window_to_highlight && window->RootWindowForTitleBarHighlight == window_to_highlight->RootWindowForTitleBarHighlight);
-            title_bar_is_highlight |= window->IsSelected;
+            title_bar_is_highlight |= (window->SelectedState == WINDOW_STATE_SELECTED);
 
             const bool handle_borders_and_resize_grips = true; // This exists to facilitate merge with 'docking' branch.
             RenderWindowDecorations(window, title_bar_rect, title_bar_is_highlight, handle_borders_and_resize_grips, resize_grip_count, resize_grip_col, resize_grip_draw_size);
