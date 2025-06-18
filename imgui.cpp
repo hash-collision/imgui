@@ -1730,6 +1730,12 @@ void ImGuiIO::AddMousePosEvent(float x, float y)
         return;
     }
 
+    {
+        ImVec2 pos((x > -FLT_MAX) ? ImFloor(x) : x, (y > -FLT_MAX) ? ImFloor(y) : y);
+
+        MousePosScreen = ImVec2(x, y) + ImVec2(0.5, 0.5);//[PR]
+    }
+
     const float s = 1.0f/DisplayScale;
     x*= s;
     y*= s; //[PR
@@ -1737,7 +1743,6 @@ void ImGuiIO::AddMousePosEvent(float x, float y)
     // Apply same flooring as UpdateMouseInputs()
     ImVec2 pos((x > -FLT_MAX) ? ImFloor(x) : x, (y > -FLT_MAX) ? ImFloor(y) : y);
 
-    MousePosScreen = ImVec2(pos.x, pos.y);//[PR]
     pos+= DisplayPos;//[PR]
 
     // Filter duplicate
@@ -5248,24 +5253,21 @@ void UpdateDisplayTransform()  //[PR]
     
     g.Lod = 0;
 
-    auto scale = [&io](ImVec2& pnt, float k)
-    {
-        pnt = (pnt - io.DisplayPos) * k + io.DisplayPosNew;
-    };
-
     if(io.IsDisplayModified)
     {
-        float k = io.DisplayScale / io.DisplayScaleNew;
-        scale(io.MousePos, k);
-
-        for(ImVec2& mp : io.MouseClickedPos)
-        {
-            scale(mp, k);
-        }
-
         io.DisplayPos = io.DisplayPosNew;
         io.DisplayScale = io.DisplayScaleNew;
         io.IsDisplayModified = false;
+
+        float k = 1.0f / io.DisplayScale;
+
+        io.MousePos = io.MousePosScreen * k + io.DisplayPos;
+
+        for(int i = 0; i < 5; i++)
+        {
+            io.MouseClickedPos[i] = io.MouseClickedPosScreen[i] * k + io.DisplayPos;
+        }
+
     }
 
     if(io.DisplayScale < g.Lod0Scale)
@@ -9848,6 +9850,7 @@ static void ImGui::UpdateMouseInputs()
                 io.MouseClickedLastCount[i] = 1;
             io.MouseClickedTime[i] = g.Time;
             io.MouseClickedPos[i] = io.MousePos;
+            io.MouseClickedPosScreen[i] = io.MousePosScreen;
             io.MouseClickedCount[i] = io.MouseClickedLastCount[i];
             io.MouseDragMaxDistanceSqr[i] = 0.0f;
         }
