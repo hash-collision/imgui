@@ -1732,7 +1732,6 @@ void ImGuiIO::AddMousePosEvent(float x, float y)
 
     {
         ImVec2 pos((x > -FLT_MAX) ? ImFloor(x) : x, (y > -FLT_MAX) ? ImFloor(y) : y);
-
         MousePosScreen = ImVec2(x, y) + ImVec2(0.5, 0.5);//[PR]
     }
 
@@ -6957,24 +6956,27 @@ void ImGui::RenderWindowDecorations(ImGuiWindow* window, const ImRect& title_bar
         // Window background
         if (!(flags & ImGuiWindowFlags_NoBackground))
         {
-            int z = 0;
+            float z = 0;
+            int i = 0;
+
 
             for (ImGuiWindow* w : g.Windows)
             {
                 if(w==window)
                 {
-                    break;
+                    z = float(i)+1.0f;
                 }
 
                 if(!w->Hidden && !w->IsFallbackWindow)
                 {
-                    z++;
-                }
+                    i++;
+                }    
             }
 
-            float k = ImMin( float(z) / 6.0f, 4.0f);
 
-            k = powf(k, 2.0f) + 1.0f;
+            float k = 1.4f * float(z) / float(i);
+
+            k = powf(k, 2.0f);
 
             //Drop shadow
             ImU32 shad_col = GetColorU32(ImGuiCol_DropShadow);
@@ -15315,7 +15317,7 @@ static void ImGui::UpdateViewportsNewFrame()
     // FIXME-VIEWPORT: Size is driven by backend/user code for backward-compatibility but we should aim to make this more consistent.
     ImGuiViewportP* main_viewport = g.Viewports[0];
     main_viewport->Flags = ImGuiViewportFlags_IsPlatformWindow | ImGuiViewportFlags_OwnedByApp;
-    main_viewport->Pos = g.IO.DisplayPos;// [PR]
+    main_viewport->Pos = g.IO.DisplayPos;
     main_viewport->Size = g.IO.DisplaySize * Scale; //[PR]
 
     for (ImGuiViewportP* viewport : g.Viewports)
