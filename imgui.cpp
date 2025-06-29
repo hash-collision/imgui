@@ -6974,7 +6974,7 @@ void ImGui::RenderWindowDecorations(ImGuiWindow* window, const ImRect& title_bar
             }
 
 
-            float k = 1.4f * float(z) / float(i);
+            float k = 1.6f * float(z) / float(i);
 
             k = powf(k, 2.0f);
 
@@ -6990,18 +6990,21 @@ void ImGui::RenderWindowDecorations(ImGuiWindow* window, const ImRect& title_bar
             ImVec2 p = window->Pos + offset;
             ImVec2 sz = window->Size;
             ImVec2 p1 = p + sz;
+            
+
+      
             window->DrawList->AddRectExpanded(p, p1, shad_col, window_rounding, ImDrawFlags_RoundCornersAll, expand);
 
+    
             ImU32 bg_col = GetColorU32(GetWindowBgColorIdx(window));
 
             if(window->SelectedState==WINDOW_STATE_SELECTED || window == g.NavWindow)
             {
                 bg_col = GetColorU32(ImGuiCol_WindowSelected);
             }
-            else 
-            if(window->SelectedState==WINDOW_STATE_SELECTED_PENDING)
+            else if(window->SelectedState==WINDOW_STATE_SELECTED_PENDING)
             {
-                bg_col = GetColorU32(ImGuiCol_WindowSelected, 0.5f);
+                bg_col = GetColorU32(ImGuiCol_WindowSelected);
             }
 
             bool override_alpha = false;
@@ -7013,7 +7016,9 @@ void ImGui::RenderWindowDecorations(ImGuiWindow* window, const ImRect& title_bar
             }
             if (override_alpha)
                 bg_col = (bg_col & ~IM_COL32_A_MASK) | (IM_F32_TO_INT8_SAT(alpha) << IM_COL32_A_SHIFT);
-            window->DrawList->AddRectFilled(window->Pos + ImVec2(0, window->TitleBarHeight), window->Pos + window->Size, bg_col, window_rounding, (flags & ImGuiWindowFlags_NoTitleBar) ? 0 : ImDrawFlags_RoundCornersBottom);
+
+            
+            window->DrawList->AddRectFilled(window->Pos + ImVec2(0, window->TitleBarHeight-1), window->Pos + window->Size, bg_col, window_rounding, (flags & ImGuiWindowFlags_NoTitleBar) ? 0 : ImDrawFlags_RoundCornersBottom);
         }
 
 
