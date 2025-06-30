@@ -3770,10 +3770,7 @@ void ImGui::RenderFrame(ImVec2 p_min, ImVec2 p_max, ImU32 fill_col, bool borders
     window->DrawList->AddRectFilled(p_min, p_max, fill_col, rounding);
     float border_size = g.Style.FrameBorderSize;
 
-    if(window->IsScreenspace)
-    {
-        border_size*= g.PixelWidth;
-    }
+    border_size*= g.PixelWidth;
 
     if (borders && border_size > 0.0f)
     {
@@ -4907,6 +4904,9 @@ ImDrawData* ImGui::GetDrawData()
     return viewport->DrawDataP.Valid ? &viewport->DrawDataP : NULL;
 }
 
+
+
+
 double ImGui::GetTime()
 {
     return GImGui->Time;
@@ -4917,7 +4917,7 @@ int ImGui::GetFrameCount()
     return GImGui->FrameCount;
 }
 
-static ImDrawList* GetViewportBgFgDrawList(ImGuiViewportP* viewport, size_t drawlist_no, const char* drawlist_name)
+static ImDrawList* GetViewportDrawList(ImGuiViewportP* viewport, size_t drawlist_no, const char* drawlist_name)
 {
     // Create the draw list on demand, because they are not frequently used for all viewports
     ImGuiContext& g = *GImGui;
@@ -4925,6 +4925,7 @@ static ImDrawList* GetViewportBgFgDrawList(ImGuiViewportP* viewport, size_t draw
     ImDrawList* draw_list = viewport->BgFgDrawLists[drawlist_no];
     if (draw_list == NULL)
     {
+
         draw_list = IM_NEW(ImDrawList)(&g.DrawListSharedData);
         draw_list->_OwnerName = drawlist_name;
         viewport->BgFgDrawLists[drawlist_no] = draw_list;
@@ -4935,15 +4936,37 @@ static ImDrawList* GetViewportBgFgDrawList(ImGuiViewportP* viewport, size_t draw
     {
         draw_list->_ResetForNewFrame();
         draw_list->PushTextureID(g.IO.Fonts->TexID);
-        draw_list->PushClipRect(viewport->Pos, viewport->Pos + viewport->Size, false);
+
+        if(drawlist_no==2)
+        {
+            draw_list->PushClipRect(ImVec2(0.0f, 0.0f), g.IO.DisplaySize, false);
+        }
+        else
+        {
+            draw_list->PushClipRect(viewport->Pos, viewport->Pos + viewport->Size, false);
+        }
+
         viewport->BgFgDrawListsLastFrame[drawlist_no] = g.FrameCount;
     }
     return draw_list;
 }
 
+
+ImDrawList* ImGui::GetHudDrawList(ImGuiViewport* viewport)
+{
+    return GetViewportDrawList((ImGuiViewportP*)viewport, 2, "##Hud");
+}
+
 ImDrawList* ImGui::GetBackgroundDrawList(ImGuiViewport* viewport)
 {
-    return GetViewportBgFgDrawList((ImGuiViewportP*)viewport, 0, "##Background");
+    return GetViewportDrawList((ImGuiViewportP*)viewport, 0, "##Background");
+}
+
+
+ImDrawList* ImGui::GetHudDrawList()
+{
+    ImGuiContext& g = *GImGui;
+    return GetHudDrawList(g.Viewports[0]);
 }
 
 ImDrawList* ImGui::GetBackgroundDrawList()
@@ -4954,7 +4977,7 @@ ImDrawList* ImGui::GetBackgroundDrawList()
 
 ImDrawList* ImGui::GetForegroundDrawList(ImGuiViewport* viewport)
 {
-    return GetViewportBgFgDrawList((ImGuiViewportP*)viewport, 1, "##Foreground");
+    return GetViewportDrawList((ImGuiViewportP*)viewport, 1, "##Foreground");
 }
 
 ImDrawList* ImGui::GetForegroundDrawList()
@@ -5186,11 +5209,15 @@ static void SetupDrawListSharedData()
     ImGuiContext& g = *GImGui;
     ImRect virtual_space(FLT_MAX, FLT_MAX, -FLT_MAX, -FLT_MAX);
     for (ImGuiViewportP* viewport : g.Viewports)
+    {
         virtual_space.Add(viewport->GetMainRect());
+    }
+
     g.DrawListSharedData.ClipRectFullscreen = virtual_space.ToVec4();
     g.DrawListSharedData.CurveTessellationTol = g.Style.CurveTessellationTol;
     g.DrawListSharedData.SetCircleTessellationMaxError(g.Style.CircleTessellationMaxError);
     g.DrawListSharedData.InitialFlags = ImDrawListFlags_None;
+
     if (g.Style.AntiAliasedLines)
         g.DrawListSharedData.InitialFlags |= ImDrawListFlags_AntiAliasedLines;
     if (g.Style.AntiAliasedLinesUseTex && !(g.IO.Fonts->Flags & ImFontAtlasFlags_NoBakedLines))
@@ -5337,7 +5364,9 @@ void ImGui::NewFrame(ImVec2 display_size)
 
     // Mark rendering data as invalid to prevent user who may have a handle on it to use it.
     for (ImGuiViewportP* viewport : g.Viewports)
+    {
         viewport->DrawDataP.Valid = false;
+    }
 
     // Drag and drop keep the source ID alive so even if the source disappear our state is consistent
     if (g.DragDropActive && g.DragDropPayload.SourceId == g.ActiveId)
@@ -5626,21 +5655,22 @@ static void FlattenDrawDataIntoSingleLayer(ImDrawDataBuilder* builder)
 
 static void InitViewportDrawData(ImGuiViewportP* viewport)
 {
-    ImGuiIO& io = ImGui::GetIO();
-    ImDrawData* draw_data = &viewport->DrawDataP;
-
-    viewport->DrawDataBuilder.Layers[0] = &draw_data->CmdLists;
-    viewport->DrawDataBuilder.Layers[1] = &viewport->DrawDataBuilder.LayerData1;
-    viewport->DrawDataBuilder.Layers[0]->resize(0);
-    viewport->DrawDataBuilder.Layers[1]->resize(0);
+    ImDrawData* draw_data =&viewport->DrawDataP;
 
     draw_data->Valid = true;
     draw_data->CmdListsCount = 0;
     draw_data->TotalVtxCount = draw_data->TotalIdxCount = 0;
     draw_data->DisplayPos = viewport->Pos;
     draw_data->DisplaySize = viewport->Size;
-    draw_data->FramebufferScale = io.DisplayFramebufferScale;
+    draw_data->FramebufferScale = ImGui::GetIO().DisplayFramebufferScale;
     draw_data->OwnerViewport = viewport;
+
+    viewport->DrawDataBuilder.Layers[0] = &draw_data->CmdLists;
+    viewport->DrawDataBuilder.Layers[1] = &viewport->DrawDataBuilder.LayerData1;
+    viewport->DrawDataBuilder.Layers[0]->resize(0);
+    viewport->DrawDataBuilder.Layers[1]->resize(0);
+
+
 }
 
 // Push a clipping rectangle for both ImGui logic (hit-testing etc.) and low-level ImDrawList rendering.
@@ -5858,9 +5888,14 @@ void ImGui::Render()
     IM_ASSERT(g.Initialized);
 
     if (g.FrameCountEnded != g.FrameCount)
+    {
         EndFrame();
+    }
+    
     if (g.FrameCountRendered == g.FrameCount)
+    {
         return;
+    }
     g.FrameCountRendered = g.FrameCount;
 
     g.IO.MetricsRenderWindows = 0;
@@ -5870,50 +5905,71 @@ void ImGui::Render()
     for (ImGuiViewportP* viewport : g.Viewports)
     {
         InitViewportDrawData(viewport);
-        if (viewport->BgFgDrawLists[0] != NULL)
+        if (viewport->BgFgDrawLists[0])
+        {
             AddDrawListToDrawDataEx(&viewport->DrawDataP, viewport->DrawDataBuilder.Layers[0], GetBackgroundDrawList(viewport));
+        }
     }
 
     // Draw modal/window whitening backgrounds
     RenderDimmedBackgrounds();
 
     // Add ImDrawList to render
-    ImGuiWindow* windows_to_render_top_most[2];
-    windows_to_render_top_most[0] = (g.NavWindowingTarget && !(g.NavWindowingTarget->Flags & ImGuiWindowFlags_NoBringToFrontOnFocus)) ? g.NavWindowingTarget->RootWindow : NULL;
-    windows_to_render_top_most[1] = (g.NavWindowingTarget ? g.NavWindowingListWindow : NULL);
+    ImGuiWindow* windows_to_render_top_most[2] = 
+    {
+        (g.NavWindowingTarget && !(g.NavWindowingTarget->Flags & ImGuiWindowFlags_NoBringToFrontOnFocus)) ? g.NavWindowingTarget->RootWindow : NULL,
+        (g.NavWindowingTarget ? g.NavWindowingListWindow : NULL)
+    };
+
     for (ImGuiWindow* window : g.Windows)
     {
         IM_MSVC_WARNING_SUPPRESS(6011); // Static Analysis false positive "warning C6011: Dereferencing NULL pointer 'window'"
         if (IsWindowActiveAndVisible(window) && (window->Flags & ImGuiWindowFlags_ChildWindow) == 0 && window != windows_to_render_top_most[0] && window != windows_to_render_top_most[1])
+        {
             AddRootWindowToDrawData(window);
+        }
     }
-    for (int n = 0; n < IM_ARRAYSIZE(windows_to_render_top_most); n++)
-        if (windows_to_render_top_most[n] && IsWindowActiveAndVisible(windows_to_render_top_most[n])) // NavWindowingTarget is always temporarily displayed as the top-most window
-            AddRootWindowToDrawData(windows_to_render_top_most[n]);
+
+    for (ImGuiWindow* w : windows_to_render_top_most)
+    {
+        if (w && IsWindowActiveAndVisible(w)) // NavWindowingTarget is always temporarily displayed as the top-most window
+        {
+            AddRootWindowToDrawData(w);
+        }
+    }
 
     // Draw software mouse cursor if requested by io.MouseDrawCursor flag
     if (g.IO.MouseDrawCursor && g.MouseCursor != ImGuiMouseCursor_None)
+    {
         RenderMouseCursor(g.IO.MousePos, g.Style.MouseCursorScale, g.MouseCursor, IM_COL32_WHITE, IM_COL32_BLACK, IM_COL32(0, 0, 0, 48));
+    }
 
     // Setup ImDrawData structures for end-user
     g.IO.MetricsRenderVertices = g.IO.MetricsRenderIndices = 0;
     for (ImGuiViewportP* viewport : g.Viewports)
     {
         FlattenDrawDataIntoSingleLayer(&viewport->DrawDataBuilder);
-
         // Add foreground ImDrawList (for each active viewport)
-        if (viewport->BgFgDrawLists[1] != NULL)
+        if (viewport->BgFgDrawLists[1])
+        {
             AddDrawListToDrawDataEx(&viewport->DrawDataP, viewport->DrawDataBuilder.Layers[0], GetForegroundDrawList(viewport));
+        }
 
         // We call _PopUnusedDrawCmd() last thing, as RenderDimmedBackgrounds() rely on a valid command being there (especially in docking branch).
         ImDrawData* draw_data = &viewport->DrawDataP;
         IM_ASSERT(draw_data->CmdLists.Size == draw_data->CmdListsCount);
+
         for (ImDrawList* draw_list : draw_data->CmdLists)
+        {
             draw_list->_PopUnusedDrawCmd();
+        }
 
         g.IO.MetricsRenderVertices += draw_data->TotalVtxCount;
         g.IO.MetricsRenderIndices += draw_data->TotalIdxCount;
+
     }
+
+
 
     CallContextHooks(&g, ImGuiContextHookType_RenderPost);      
 }
@@ -7340,15 +7396,7 @@ bool ImGui::Begin(const char* name, bool* p_open, ImGuiWindowFlags flags)
         window->UserData = g.NextWindowData.UserData;
     }
 
-    if (g.NextWindowData.HasFlags & ImGuiNextWindowDataFlags_HasIsScreenspace)
-    {
-        window->IsScreenspace = g.NextWindowData.IsScreenspace;
 
-        window->FontWindowScale = g.PixelWidth;
-        g.FontSize = g.DrawListSharedData.FontSize = window->CalcFontSize();
-        g.FontScale = g.DrawListSharedData.FontScale = g.FontSize / g.Font->FontSize;
-    }
-    
     
     bool window_pos_set_by_api = false;
     bool window_size_x_set_by_api = false, window_size_y_set_by_api = false;
@@ -7824,13 +7872,8 @@ bool ImGui::Begin(const char* name, bool* p_open, ImGuiWindowFlags flags)
 
 
         ImVec2 window_padding = window->WindowPadding;
-
         float window_border_size = window->WindowBorderSize * g.PixelWidth;
 
-        if(window->IsScreenspace)
-        {
-            window_padding*= g.PixelWidth;
-        }
         
         const bool allow_scrollbar_x = !(flags & ImGuiWindowFlags_NoScrollbar) && (flags & ImGuiWindowFlags_HorizontalScrollbar);
         const bool allow_scrollbar_y = !(flags & ImGuiWindowFlags_NoScrollbar);
@@ -8521,16 +8564,6 @@ void ImGui::SetNextWindowUserData(uint64_t user_data)
     ImGuiContext& g = *GImGui;
     g.NextWindowData.UserData = user_data;
     g.NextWindowData.HasFlags |= ImGuiNextWindowDataFlags_HasUserData;
-}
-
-void ImGui::SetNextWindowIsScreenspace(bool is_screenspace)
-{
-    ImGuiContext& g = *GImGui;
-    g.NextWindowData.IsScreenspace = is_screenspace;
-    g.NextWindowData.HasFlags |= ImGuiNextWindowDataFlags_HasIsScreenspace;
-
-    SetNextWindowPos(g.IO.DisplayPos, ImGuiCond_Always);
-
 }
 
 void ImGui::SetNextWindowPos(const ImVec2& pos, ImGuiCond cond, const ImVec2& pivot)
@@ -11195,16 +11228,7 @@ ImVec2 ImGui::CalcItemSize(ImVec2 size, float default_w, float default_h)
         avail = GetContentRegionAvail();
     }
 
-    ImGuiWindow* window = GetCurrentWindow();
-
     float min_width = 4.0f;
-    if(window->IsScreenspace)
-    {
-        //BANANA
-        float pw = GImGui->PixelWidth;
-        size *= pw;
-        min_width*= pw;
-    }
 
     if (size.x == 0.0f)
         size.x = default_w;
@@ -11236,12 +11260,6 @@ inline float GetFramePadding()
     ImGuiContext& g = *GImGui;
 
     float pad = g.Style.FramePadding.y * 2.0f;
-
-    if(ImGui::GetCurrentWindow()->IsScreenspace)
-    {
-        pad*= g.PixelWidth;
-    }
-
     return pad;
 }
 
@@ -11249,14 +11267,7 @@ inline float GetFramePadding()
 inline ImVec2 GetItemSpacing()
 {
     ImGuiContext& g = *GImGui;
-
     ImVec2 spacing = g.Style.ItemSpacing;
-
-    if(ImGui::GetCurrentWindow()->IsScreenspace)
-    {
-        spacing*= g.PixelWidth;
-    }
-
     return spacing;
 }
 

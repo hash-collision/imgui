@@ -1213,8 +1213,7 @@ enum ImGuiNextWindowDataFlags_
     ImGuiNextWindowDataFlags_HasWindowFlags     = 1 << 8,
     ImGuiNextWindowDataFlags_HasChildFlags      = 1 << 9,
     ImGuiNextWindowDataFlags_HasRefreshPolicy   = 1 << 10,
-    ImGuiNextWindowDataFlags_HasUserData        = 1 << 11,
-    ImGuiNextWindowDataFlags_HasIsScreenspace   = 1 << 12,
+    ImGuiNextWindowDataFlags_HasUserData        = 1 << 11
 };
 
 // Storage for SetNexWindow** functions
@@ -1241,7 +1240,6 @@ struct ImGuiNextWindowData
     ImVec2                      MenuBarOffsetMinVal;    // (Always on) This is not exposed publicly, so we don't clear it and it doesn't have a corresponding flag (could we? for consistency?)
     ImGuiWindowRefreshFlags     RefreshFlagsVal;
     uint64_t                    UserData;
-    bool                        IsScreenspace;
 
     ImGuiNextWindowData()       { memset(this, 0, sizeof(*this)); }
     inline void ClearFlags()    { HasFlags = ImGuiNextWindowDataFlags_None; }
@@ -1861,8 +1859,10 @@ struct IMGUI_API ImGuiMultiSelectState
 // Every instance of ImGuiViewport is in fact a ImGuiViewportP.
 struct ImGuiViewportP : public ImGuiViewport
 {
-    int                 BgFgDrawListsLastFrame[2]; // Last frame number the background (0) and foreground (1) draw lists were used
-    ImDrawList*         BgFgDrawLists[2];       // Convenience background (0) and foreground (1) draw lists. We use them to draw software mouser cursor when io.MouseDrawCursor is set and to draw most debug overlays.
+    enum { VP_DRAW_LIST_COUNT };
+
+    int                 BgFgDrawListsLastFrame[3]; // Last frame number the background (0) and foreground (1) draw lists were used
+    ImDrawList*         BgFgDrawLists[3];       // Convenience background (0) and foreground (1) draw lists. We use them to draw software mouse cursor when io.MouseDrawCursor is set and to draw most debug overlays.
     ImDrawData          DrawDataP;
     ImDrawDataBuilder   DrawDataBuilder;        // Temporary data while building final ImDrawData
 
@@ -1875,8 +1875,16 @@ struct ImGuiViewportP : public ImGuiViewport
     ImVec2              BuildWorkInsetMin;      // Work Area inset accumulator for current frame, to become next frame's WorkInset
     ImVec2              BuildWorkInsetMax;      // "
 
-    ImGuiViewportP()    { BgFgDrawListsLastFrame[0] = BgFgDrawListsLastFrame[1] = -1; BgFgDrawLists[0] = BgFgDrawLists[1] = NULL; }
-    ~ImGuiViewportP()   { if (BgFgDrawLists[0]) IM_DELETE(BgFgDrawLists[0]); if (BgFgDrawLists[1]) IM_DELETE(BgFgDrawLists[1]); }
+    ImGuiViewportP()    
+    { 
+        for(auto& lf : BgFgDrawListsLastFrame) { lf = -1; }
+        for(auto& dl : BgFgDrawLists) { dl = 0; }
+    }
+
+    ~ImGuiViewportP()   
+    { 
+        for(auto& dl : BgFgDrawLists) { IM_DELETE(dl); }
+    }
 
     // Calculate work rect pos/size given a set of offset (we have 1 pair of offset for rect locked from last frame data, and 1 pair for currently building rect)
     ImVec2  CalcWorkRectPos(const ImVec2& inset_min) const                           { return ImVec2(Pos.x + inset_min.x, Pos.y + inset_min.y); }
@@ -2634,7 +2642,7 @@ struct IMGUI_API ImGuiWindow
 
     uint64_t                   UserData;
     ImGuiWindowSelectionState  SelectedState;
-    bool                       IsScreenspace;
+
     ////
 
 public:
@@ -3083,6 +3091,8 @@ namespace ImGui
     inline ImDrawList*      GetForegroundDrawList(ImGuiWindow* window) { IM_UNUSED(window); return GetForegroundDrawList(); } // This seemingly unnecessary wrapper simplifies compatibility between the 'master' and 'docking' branches.
     IMGUI_API ImDrawList*   GetBackgroundDrawList(ImGuiViewport* viewport);                     // get background draw list for the given viewport. this draw list will be the first rendering one. Useful to quickly draw shapes/text behind dear imgui contents.
     IMGUI_API ImDrawList*   GetForegroundDrawList(ImGuiViewport* viewport);                     // get foreground draw list for the given viewport. this draw list will be the last rendered one. Useful to quickly draw shapes/text over dear imgui contents.
+    IMGUI_API ImDrawList*   GetHudDrawList(ImGuiViewport* viewport); // [PR]
+  
     IMGUI_API void          AddDrawListToDrawDataEx(ImDrawData* draw_data, ImVector<ImDrawList*>* out_list, ImDrawList* draw_list);
 
     // Init
