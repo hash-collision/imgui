@@ -1265,7 +1265,8 @@ static void             UpdateKeyRoutingTable(ImGuiKeyRoutingTable* rt);
 static void             UpdateSettings();
 static int              UpdateWindowManualResize(ImGuiWindow* window, const ImVec2& size_auto_fit, int* border_hovered, int* border_held, int resize_grip_count, ImU32 resize_grip_col[4], const ImRect& visibility_rect);
 static void             RenderWindowOuterBorders(ImGuiWindow* window, bool is_highlight);
-static void             RenderWindowDecorations(ImGuiWindow* window, const ImRect& title_bar_rect, bool title_bar_is_highlight, bool handle_borders_and_resize_grips, int resize_grip_count, const ImU32 resize_grip_col[4], float resize_grip_draw_size);
+static void             RenderWindowDecorations(ImGuiWindow* window, const ImRect& title_bar_rect, bool title_bar_is_highlight, bool handle_borders_and_resize_grips, 
+    int resize_grip_count, const ImU32 resize_grip_col[4], float resize_grip_draw_size, bool* p_open);
 static void             RenderWindowTitleBarContents(ImGuiWindow* window, const ImRect& title_bar_rect, const char* name, bool* p_open);
 static void             RenderDimmedBackgroundBehindWindow(ImGuiWindow* window, ImU32 col);
 static void             RenderDimmedBackgrounds();
@@ -1731,7 +1732,7 @@ void ImGuiIO::AddMousePosEvent(float x, float y)
     }
 
     {
-        ImVec2 pos((x > -FLT_MAX) ? ImFloor(x) : x, (y > -FLT_MAX) ? ImFloor(y) : y);
+        ImVec2 pos(x, y);
         MousePosScreen = ImVec2(x, y) + ImVec2(0.5, 0.5);//[PR]
     }
 
@@ -1739,8 +1740,7 @@ void ImGuiIO::AddMousePosEvent(float x, float y)
     x*= s;
     y*= s; //[PR
 
-    // Apply same flooring as UpdateMouseInputs()
-    ImVec2 pos((x > -FLT_MAX) ? ImFloor(x) : x, (y > -FLT_MAX) ? ImFloor(y) : y);
+    ImVec2 pos(x, y);
 
     pos+= DisplayPos;//[PR]
 
@@ -6945,7 +6945,6 @@ static void ImGui::RenderWindowOuterBorders(ImGuiWindow* window, bool is_highlig
     const float border_size = window->WindowBorderSize * g.PixelWidth;
     ImU32 border_col = GetColorU32(is_highlight ? ImGuiCol_BorderActive : ImGuiCol_Border);
 
-
     if(window->SelectedState == WINDOW_STATE_SELECTED_PENDING)
     {
         border_col = GetColorU32(ImGuiCol_WindowSelectedPending);
@@ -6981,10 +6980,14 @@ static void ImGui::RenderWindowOuterBorders(ImGuiWindow* window, bool is_highlig
     }
 }
 
+
 // Draw background and borders
 // Draw and handle scrollbars
-void ImGui::RenderWindowDecorations(ImGuiWindow* window, const ImRect& title_bar_rect, bool title_bar_is_highlight, bool handle_borders_and_resize_grips, int resize_grip_count, const ImU32 resize_grip_col[4], float resize_grip_draw_size)
+void ImGui::RenderWindowDecorations(ImGuiWindow* window, const ImRect& title_bar_rect, bool title_bar_is_highlight, bool handle_borders_and_resize_grips, 
+    int resize_grip_count, const ImU32 resize_grip_col[4], float resize_grip_draw_size, bool* p_open)
 {
+    //BANANA
+
     ImGuiContext& g = *GImGui;
     ImGuiStyle& style = g.Style;
     ImGuiWindowFlags flags = window->Flags;
@@ -7014,7 +7017,6 @@ void ImGui::RenderWindowDecorations(ImGuiWindow* window, const ImRect& title_bar
         {
             float z = 0;
             int i = 0;
-
 
             for (ImGuiWindow* w : g.Windows)
             {
@@ -7047,13 +7049,11 @@ void ImGui::RenderWindowDecorations(ImGuiWindow* window, const ImRect& title_bar
             ImVec2 sz = window->Size;
             ImVec2 p1 = p + sz;
             
-
-      
             window->DrawList->AddRectExpanded(p, p1, shad_col, window_rounding, ImDrawFlags_RoundCornersAll, expand);
 
-    
             ImU32 bg_col = GetColorU32(GetWindowBgColorIdx(window));
 
+    
             if(window->SelectedState==WINDOW_STATE_SELECTED || window == g.NavWindow)
             {
                 bg_col = GetColorU32(ImGuiCol_WindowSelected);
@@ -7119,9 +7119,7 @@ void ImGui::RenderWindowDecorations(ImGuiWindow* window, const ImRect& title_bar
             }
         }
 
-        // Borders
-        if (handle_borders_and_resize_grips)
-            RenderWindowOuterBorders(window, title_bar_is_highlight);
+        
     }
     window->DC.NavLayerCurrent = ImGuiNavLayer_Main;
 }
@@ -7803,7 +7801,7 @@ bool ImGui::Begin(const char* name, bool* p_open, ImGuiWindowFlags flags)
         window->InnerClipRect.Min.x = ImFloor(0.5f + window->InnerRect.Min.x + window->WindowBorderSize * 0.5f);
         window->InnerClipRect.Min.y = ImFloor(0.5f + window->InnerRect.Min.y + top_border_size * 0.5f);
         window->InnerClipRect.Max.x = ImFloor(window->InnerRect.Max.x - window->WindowBorderSize * 0.5f);
-        window->InnerClipRect.Max.y = ImFloor(window->InnerRect.Max.y - window->WindowBorderSize * 0.5f);
+        window->InnerClipRect.Max.y = ImFloor(window->InnerRect.Max.y - window->WindowBorderSize*2.0f);//[PR] FIX THIS
         window->InnerClipRect.ClipWithFull(host_rect);
 
         // Default item width. Make it proportional to window size if window manually resizes
@@ -7848,18 +7846,23 @@ bool ImGui::Begin(const char* name, bool* p_open, ImGuiWindowFlags flags)
                     render_decorations_in_parent = true;
             }
             if (render_decorations_in_parent)
+            {
                 window->DrawList = parent_window->DrawList;
+            }
 
+            //BANANA
             // Handle title bar, scrollbar, resize grips and resize borders
             const ImGuiWindow* window_to_highlight = g.NavWindowingTarget ? g.NavWindowingTarget : g.NavWindow;
             bool title_bar_is_highlight = want_focus || (window_to_highlight && window->RootWindowForTitleBarHighlight == window_to_highlight->RootWindowForTitleBarHighlight);
             title_bar_is_highlight |= (window->SelectedState == WINDOW_STATE_SELECTED);
 
             const bool handle_borders_and_resize_grips = true; // This exists to facilitate merge with 'docking' branch.
-            RenderWindowDecorations(window, title_bar_rect, title_bar_is_highlight, handle_borders_and_resize_grips, resize_grip_count, resize_grip_col, resize_grip_draw_size);
+            RenderWindowDecorations(window, title_bar_rect, title_bar_is_highlight, handle_borders_and_resize_grips, resize_grip_count, resize_grip_col, resize_grip_draw_size, p_open);
 
             if (render_decorations_in_parent)
+            {
                 window->DrawList = &window->DrawListInst;
+            }
         }
 
         // UPDATE RECTANGLES (2- THOSE AFFECTED BY SCROLLING)
@@ -7961,9 +7964,7 @@ bool ImGui::Begin(const char* name, bool* p_open, ImGuiWindowFlags flags)
             if (g.NavWindow && g.NavWindow->RootWindow == window && g.ActiveId == 0 && Shortcut(ImGuiMod_Ctrl | ImGuiKey_C))
                 LogToClipboard(0);
 
-        // Title bar
 
-        //BANANA
 
 
         if (!(flags & ImGuiWindowFlags_NoTitleBar))
@@ -8097,17 +8098,30 @@ void ImGui::End()
         IM_ASSERT_USER_ERROR(g.CurrentWindowStack.Size > 1, "Calling End() too many times!");
         return;
     }
+
     ImGuiWindowStackData& window_stack_data = g.CurrentWindowStack.back();
 
     // Error checking: verify that user doesn't directly call End() on a child window.
     if (window->Flags & ImGuiWindowFlags_ChildWindow)
         IM_ASSERT_USER_ERROR(g.WithinEndChildID == window->ID, "Must call EndChild() and not End()!");
 
-    // Close anything that is open
     if (window->DC.CurrentColumns)
+    {
         EndColumns();
+    }
     if (!window->SkipRefresh)
+    {
         PopClipRect();   // Inner window clip rectangle
+    }
+
+    //Draw borders afterwards to avoid precision issues with scissor rect [PR]
+    {     
+        const ImGuiWindow* window_to_highlight = g.NavWindowingTarget ? g.NavWindowingTarget : g.NavWindow;
+        bool title_bar_is_highlight = window->Appearing || (window_to_highlight && window->RootWindowForTitleBarHighlight == window_to_highlight->RootWindowForTitleBarHighlight);
+        title_bar_is_highlight |= (window->SelectedState == WINDOW_STATE_SELECTED);
+        RenderWindowOuterBorders(window, title_bar_is_highlight);
+    }
+
     PopFocusScope();
     if (window_stack_data.DisabledOverrideReenable && window->RootWindow == window)
         EndDisabledOverrideReenable();

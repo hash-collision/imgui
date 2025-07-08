@@ -9560,7 +9560,7 @@ static void ShowExampleAppConstrainedResize(bool* p_open)
 
     // Submit window
     if (!window_padding)
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f)); 
     const ImGuiWindowFlags window_flags = auto_resize ? ImGuiWindowFlags_AlwaysAutoResize : 0;
     const bool window_open = ImGui::Begin("Example: Constrained Resize", p_open, window_flags);
     if (!window_padding)
