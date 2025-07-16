@@ -7015,41 +7015,29 @@ void ImGui::RenderWindowDecorations(ImGuiWindow* window, const ImRect& title_bar
         // Window background
         if (!(flags & ImGuiWindowFlags_NoBackground))
         {
-            float z = 0;
-            int i = 0;
-
-            for (ImGuiWindow* w : g.Windows)
-            {
-                if(w==window)
-                {
-                    z = float(i)+1.0f;
-                }
-
-                if(!w->Hidden && !w->IsFallbackWindow)
-                {
-                    i++;
-                }    
-            }
-
-
-            float k = 1.6f * float(z) / float(i);
-
-            k = powf(k, 2.0f);
-
+            int n = g.WindowsFocusOrder.Size;
+            int zi = window->FocusOrder;
             //Drop shadow
-            ImU32 shad_col = GetColorU32(ImGuiCol_DropShadow);
+            if(n>0)
+            {
+                float k = ( float(zi) / float(n));
+                k = powf(k, 2.0f) * 1.6f;
+                k+= 1.0f;
+             //   printf("window stack : {%s} [ %d / %d ] ................... k[%f]\n", window->Name, zi, n, k )
+                ImU32 shad_col = GetColorU32(ImGuiCol_DropShadow);
 
-            ImVec2 offset(2.0f, 2.0f);
-            float expand = 5.0f;
+                ImVec2 offset(2.0f, 2.0f);
+                float expand = 5.0f;
 
-            offset*= k;
-            expand*= k;
-            
-            ImVec2 p = window->Pos + offset;
-            ImVec2 sz = window->Size;
-            ImVec2 p1 = p + sz;
-            
-            window->DrawList->AddRectExpanded(p, p1, shad_col, window_rounding, ImDrawFlags_RoundCornersAll, expand);
+                offset*= k;
+                expand*= k;
+                
+                ImVec2 p = window->Pos + offset;
+                ImVec2 sz = window->Size;
+                ImVec2 p1 = p + sz;
+                
+                window->DrawList->AddRectExpanded(p, p1, shad_col, window_rounding, ImDrawFlags_RoundCornersAll, expand);
+            }
 
             ImU32 bg_col = GetColorU32(GetWindowBgColorIdx(window));
 

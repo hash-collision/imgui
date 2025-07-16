@@ -613,6 +613,10 @@ void ImDrawList::_OnChangedVtxOffset()
 
 int ImDrawList::_CalcCircleAutoSegmentCount(float radius) const
 {
+
+    ImGuiContext& g = *GImGui;
+    radius*= g.PixelWidth;
+    
     // Automatic segment count
     const int radius_idx = (int)(radius + 0.999999f); // ceil to never reduce accuracy
     if (radius_idx >= 0 && radius_idx < IM_ARRAYSIZE(_Data->CircleSegmentCounts))
